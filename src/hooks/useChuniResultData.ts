@@ -292,10 +292,14 @@ export function useChuniResultData({
   ]);
 
   useEffect(() => {
+    // 이 훅은 시뮬레이션 목록이 비워졌을 때 상태를 초기화하는 역할만 담당합니다.
+    if (simulationTargetSongs.length === 0 && state.currentPhase !== 'idle') {
+      dispatch({ type: 'RESET_SIMULATION_STATE_FOR_NEW_STRATEGY' });
+    }
+  }, [simulationTargetSongs, state.currentPhase, dispatch]);
+
+  useEffect(() => {
     if ((calculationStrategy === 'none' && simulationTargetSongs.length === 0) || !clientHasMounted || isLoadingInitialApiData) {
-      if (state.currentPhase !== 'idle' && calculationStrategy === 'none') {
-        dispatch({ type: 'RESET_SIMULATION_STATE_FOR_NEW_STRATEGY' });
-      }
       return;
     }
     
