@@ -77,7 +77,7 @@ export type RatingApiResponse = {
     best?: { entries?: RatingApiSongEntry[] };
 };
 
-export type SimulationPhase =
+export type SimulationPhase_legacy =
   | 'idle'
   | 'simulating'
   | 'target_reached'
@@ -87,6 +87,8 @@ export type SimulationPhase =
   | 'error_data_fetch'
   | 'error_simulation_logic'
   | 'target_unreachable_info';
+
+export type SimulationPhase = 'idle' | 'simulating' | 'target_reached' | 'stuck_b30_no_improvement' | 'stuck_n20_no_improvement' | 'stuck_both_no_improvement' | 'error_data_fetch' | 'error_simulation_logic' | 'target_unreachable_info' | 'target_unreachable_custom';
 
 export type CachedSimulationResult = {
   timestamp: number;

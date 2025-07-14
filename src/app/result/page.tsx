@@ -200,7 +200,7 @@ function ResultContent() {
         statusText = getTranslation(locale, 'unreachableRatingCustomMessage').replace('{0}', customSimulationResult.unreachableRatingGap.toFixed(4));
         bgColor = "bg-orange-100 dark:bg-orange-900"; textColor = "text-orange-700 dark:text-orange-300"; IconComponent = XCircle;
     } else if (preComputationResult && currentPhase === 'target_unreachable_info' && preComputationResult.messageKey) {
-        statusText = getTranslation(locale, preComputationResult.messageKey as any, preComputationResult.reachableRating.toFixed(4));
+        statusText = getTranslation(locale, preComputationResult.messageKey as any).replace('{0}', preComputationResult.reachableRating.toFixed(4));
         bgColor = "bg-orange-100 dark:bg-orange-900"; textColor = "text-orange-700 dark:text-orange-300"; IconComponent = XCircle;
     } else if (calculationStrategy === "none" && currentPhase !== 'error_data_fetch' && !isLoadingSongs) { 
         statusText = getTranslation(locale, 'simulationTargetSongsPlaceholder');
@@ -209,7 +209,10 @@ function ResultContent() {
         switch (currentPhase) {
           case 'idle': 
             if (currentRatingDisplay && targetRating && parseFloat(currentRatingDisplay) >= parseFloat(targetRating)) {
-                statusText = getTranslation(locale, 'resultPageTargetReachedFmt', overallRatingStr, b30AvgStr, n20AvgStr);
+                statusText = getTranslation(locale, 'resultPageTargetReachedFmt')
+                  .replace('{0}', overallRatingStr)
+                  .replace('{1}', b30AvgStr)
+                  .replace('{2}', n20AvgStr);
                 bgColor = "bg-green-100 dark:bg-green-900"; textColor = "text-green-700 dark:text-green-300"; IconComponent = CheckCircle2;
             } else if (calculationStrategy !== "none") {
                  statusText = getTranslation(locale, 'resultPageLogSimulationStarting') + " (전체: " + overallRatingStr + ")";
@@ -224,21 +227,25 @@ function ResultContent() {
              IconComponent = Activity; iconShouldSpin = true;
              break;
           case 'target_reached':
-            statusText = getTranslation(locale, 'resultPageTargetReachedFmt', overallRatingStr, b30AvgStr, n20AvgStr);
+            statusText = getTranslation(locale, 'resultPageTargetReachedFmt')
+              .replace('{0}', overallRatingStr)
+              .replace('{1}', b30AvgStr)
+              .replace('{2}', n20AvgStr);
             bgColor = "bg-green-100 dark:bg-green-900"; textColor = "text-green-700 dark:text-green-300"; IconComponent = TargetIconLucide;
             break;
           case 'stuck_b30_no_improvement':
           case 'stuck_n20_no_improvement':
           case 'stuck_both_no_improvement':
-            statusText = getTranslation(locale, 'resultPageStuckBothBaseFmt', overallRatingStr) + getTranslation(locale, 'resultPageDetailRatingsAvgFmt', b30AvgStr, n20AvgStr);
+            statusText = getTranslation(locale, 'resultPageStuckBothBaseFmt').replace('{0}', overallRatingStr) + 
+                         getTranslation(locale, 'resultPageDetailRatingsAvgFmt').replace('{0}', b30AvgStr).replace('{1}', n20AvgStr);
             bgColor = (currentPhase === 'stuck_both_no_improvement' ? "bg-orange-100 dark:bg-orange-900" : "bg-yellow-100 dark:bg-yellow-900");
             textColor = (currentPhase === 'stuck_both_no_improvement' ? "text-orange-700 dark:text-orange-300" : "text-yellow-700 dark:text-yellow-300");
             IconComponent = (currentPhase === 'stuck_both_no_improvement' ? XCircle : Replace);
             break;
           case 'target_unreachable_info': 
             statusText = (preComputationResult?.messageKey && preComputationResult?.reachableRating !== undefined)
-                ? getTranslation(locale, preComputationResult.messageKey as any, preComputationResult.reachableRating.toFixed(4))
-                : getTranslation(locale, 'resultPageErrorSimulationGeneric', "목표 도달 불가 (사전 계산)");
+                ? getTranslation(locale, preComputationResult.messageKey as any).replace('{0}', preComputationResult.reachableRating.toFixed(4))
+                : getTranslation(locale, 'resultPageErrorSimulationGeneric').replace('{0}', "목표 도달 불가 (사전 계산)");
             bgColor = "bg-orange-100 dark:bg-orange-900"; textColor = "text-orange-700 dark:text-orange-300"; IconComponent = XCircle;
             break;
           default:
@@ -350,7 +357,7 @@ function ResultContent() {
           <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-2">
               <p className="text-xs text-muted-foreground">
                   {clientHasMounted && lastRefreshed
-                      ? lastRefreshed
+                      ? getTranslation(locale, 'resultPageSyncStatus').replace('{0}', new Date(lastRefreshed).toLocaleString(locale === 'KR' ? 'ko-KR' : 'ja-JP'))
                       : getTranslation(locale, 'resultPageSyncStatusChecking')}
               </p>
               <Button

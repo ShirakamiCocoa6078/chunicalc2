@@ -469,10 +469,9 @@ export function useChuniResultData({
   ]);
 
   const lastRefreshed = useMemo(() => {
-      if (!clientHasMounted || !state.lastRefreshedTimestamp) return getTranslation(locale, 'resultPageSyncStatusNoCache');
-      const date = new Date(state.lastRefreshedTimestamp);
-      return getTranslation(locale, 'resultPageSyncStatus', date.toLocaleString(locale === 'KR' ? 'ko-KR' : 'ja-JP'));
-  }, [state.lastRefreshedTimestamp, locale, clientHasMounted]);
+      if (!clientHasMounted || !state.lastRefreshedTimestamp) return null;
+      return state.lastRefreshedTimestamp;
+  }, [state.lastRefreshedTimestamp, clientHasMounted]);
   
   const toggleExcludeSongKey = useCallback((songKey: string) => {
     dispatch({ type: 'TOGGLE_EXCLUDE_SONG', payload: songKey });

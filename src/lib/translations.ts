@@ -1,177 +1,98 @@
 
-export const translations = {
-  KR: {
-    homePageTitle: "ChuniCalc 2",
-    languageToggleKR: "KR (한국어)",
-    languageToggleJP: "JP (日本語)",
-    // ChuniCalcForm
-    formTitle: "ChuniCalc 2",
-    formDescription: "츄니즘 성장 시뮬레이터.",
-    nicknameLabel: "닉네임 (Chunirec User Name)",
-    nicknamePlaceholder: "예: chunirec",
-    fetchRatingButton: "조회",
-    nicknameHelp: "Chunirec 닉네임을 입력하여 현재 레이팅을 조회합니다.",
-    currentRatingLabel: "현재 레이팅",
-    currentRatingPlaceholder: "Chunirec 유저명을 입력해 조회하세요",
-    targetRatingLabel: "목표 레이팅",
-    targetRatingPlaceholder: "예: 16.00",
-    targetRatingHelp: "목표 레이팅을 입력하세요. (최대 17.50)",
-    calculateButton: "계산 및 결과 보기",
-    // AdvancedSettings
-    advancedSettingsTitle: "고급 설정",
-    advancedSettingsDesc: "앱 설정 및 개발자 도구를 관리합니다.",
-    localApiKeyLabel: "로컬 API 키 참조 (선택 사항)",
-    localApiKeyPlaceholder: "개인 Chunirec API 토큰",
-    saveApiKeyButton: "로컬 참조용 API 키 저장/업데이트",
-    localApiKeyHelpUpdated: "이곳에 API 키를 저장해두면 API 호출 시 우선적으로 사용되며, 비어있을 경우 서버의 기본 키가 사용됩니다. 비우고 저장하면 제거됩니다.",
-    adminNameLabel: "관리자 이름",
-    adminNamePlaceholder: "관리자 이름 입력",
-    adminPasswordLabel: "개발자 인증",
-    adminPasswordPlaceholder: "비밀번호 입력",
-    authenticateButton: "인증",
-    authenticationFailedToast: "인증 실패. 이름 또는 비밀번호를 확인해주세요.",
-    authenticationSuccessToast: "개발자 인증 성공!",
-    developerSectionTitle: "개발자 도구",
-    developerToolsToggleShow: "개발자 도구 상세 표시",
-    developerToolsToggleHide: "개발자 도구 상세 숨기기",
-    developerModeActiveMessage: "개발자 모드가 활성화되었습니다. 페이지를 새로고침하면 재인증이 필요합니다.",
-    goToApiTestPageButton: "API 테스트 페이지로 이동",
-    goToSimulationTestPageButton: "시뮬레이션 테스트 페이지로 이동",
-    manualCachingLabel: "수동 데이터 캐싱",
-    cacheGlobalMusicButton: "전역 음악 목록 캐시 (music/showall)",
-    cacheUserNicknameLabel: "캐시할 사용자 닉네임",
-    cacheUserNicknamePlaceholder: "Chunirec 닉네임",
-    cacheUserRecordsButton: "해당 사용자 기록 캐시 (records/showall)",
-    deleteSpecificUserDataLabel: "특정 사용자 캐시 데이터 삭제",
-    deleteSpecificUserDataDesc: "아래에 닉네임을 입력하여 해당 사용자의 모든 캐시된 데이터를 로컬 저장소에서 삭제합니다.",
-    deleteUserNicknameLabel: "삭제할 사용자 닉네임",
-    deleteUserNicknamePlaceholder: "삭제할 닉네임 입력",
-    deleteUserDataButton: "해당 사용자 데이터 삭제",
-    clearLocalDataButton: "모든 앱 캐시 데이터 삭제",
-    clearLocalDataHelp: "앱이 로컬 저장소에 저장한 모든 캐시 데이터 (UI 설정, API 응답 등)를 삭제합니다. 참조용 API 키는 삭제되지 않습니다.",
-    contactInfoLabel: "문의 및 정보",
-    contactInfoBugReport: "버그 리포트 및 기타 문의:",
-    appVersion: "Chunicalc Ver 2.0.0",
-    // Toast Messages KR
-    toastErrorApiKeyNotSet: "API 키 오류",
-    toastErrorApiKeyNotSetDesc: "Chunirec API 토큰이 서버에 설정되지 않았거나 유효하지 않습니다. 호스팅 환경 설정을 확인해주세요.",
-    toastErrorNicknameNeeded: "닉네임 필요",
-    toastErrorNicknameNeededDesc: "닉네임을 입력해야 레이팅을 조회할 수 있습니다.",
-    toastErrorApiKeyMissing: "API 토큰 없음",
-    toastErrorApiKeyMissingDesc: "API 토큰이 설정되지 않아 레이팅을 조회할 수 없습니다. 고급 설정 또는 환경 변수를 확인해주세요.",
-    toastErrorUserNotFound: "사용자 없음",
-    toastErrorUserNotFoundDesc: (nickname: string) => `닉네임 '${nickname}'에 해당하는 사용자를 찾을 수 없거나 플레이 데이터가 없습니다.`,
-    toastErrorAccessDenied: "접근 금지",
-    toastErrorAccessDeniedDesc: (nickname: string, code?: number) => code ? `사용자 '${nickname}'의 데이터에 접근할 권한이 없습니다. (오류 코드: ${code})` : "비공개 사용자이거나 친구가 아니어서 접근할 수 없습니다.",
-    toastErrorApiRequestFailed: "API 요청 실패",
-    toastErrorApiRequestFailedDesc: (status: number, message?: string) => `API 요청 실패 (상태: ${status})${message ? `: ${message}` : ''}`,
-    toastErrorApiLogicalError: "API 로직 오류",
-    toastErrorApiLogicalErrorDesc: (message: string) => `API에서 오류를 반환했습니다: ${message}`,
-    toastSuccessRatingFetched: "레이팅 조회 성공!",
-    toastSuccessRatingFetchedDesc: (playerName: string, rating: string) => `'${playerName}'님의 현재 레이팅: ${rating}`,
-    toastErrorInvalidRatingData: "데이터 오류",
-    toastErrorInvalidRatingDataDesc: "레이팅 정보를 가져왔으나 형식이 올바르지 않거나, 플레이 데이터가 없습니다.",
-    toastErrorRatingFetchFailed: "조회 실패",
-    toastErrorRatingFetchFailedDesc: (errorMsg: string) => `레이팅을 가져오는 중 오류가 발생했습니다: ${errorMsg}`,
-    toastErrorMissingInfo: "정보 부족",
-    toastErrorMissingInfoDesc: "현재 레이팅(조회 필요)과 목표 레이팅을 모두 입력해주세요.",
-    toastErrorInvalidInput: "잘못된 입력",
-    toastErrorInvalidInputDesc: "레이팅은 숫자로 입력해야 합니다.",
-    toastErrorCurrentRatingTooHigh: "현재 레이팅 너무 높음",
-    toastErrorCurrentRatingTooHighDesc: "현재 레이팅이 17.50 이상입니다. 이 계산기에서는 더 이상 성장을 예측할 수 없습니다.",
-    toastErrorCurrentRatingTooLow: (minValue: string | number) => `현재 레이팅은 ${minValue} 이상이어야 합니다.`,
-    toastErrorCurrentRatingTooHighForm: (maxValue: string | number) => `현재 레이팅은 ${maxValue} 이하여야 합니다.`,
-    toastErrorTargetRatingTooLow: (minValue: string | number) => `목표 레이팅은 ${minValue} 이상이어야 합니다.`,
-    toastErrorTargetRatingTooHighForm: (maxValue: string | number) => `목표 레이팅은 ${maxValue} 이하여야 합니다.`,
-    toastErrorRatingInvalidStep: "레이팅은 0.01 단위로 입력해주세요.",
-    toastErrorInvalidRatingRange: "잘못된 레이팅 범위",
-    toastErrorInvalidRatingRangeDesc: "현재 레이팅은 0.00-17.49, 목표 레이팅은 0.00-17.50 사이여야 합니다.",
-    toastErrorTargetRating: "목표 레이팅 오류",
-    toastErrorTargetRatingDesc: "목표 레이팅은 현재 레이팅보다 높아야 합니다.",
-    toastSuccessLocalApiKeySaved: "로컬 참조용 API 키 저장됨",
-    toastSuccessLocalApiKeySavedDesc: "로컬 참조용 API 키가 브라우저 저장소에 성공적으로 저장되었습니다.",
-    toastSuccessLocalApiKeyRemoved: "로컬 참조용 API 키 제거됨",
-    toastSuccessLocalApiKeyRemovedDesc: "로컬 참조용 API 키가 비어있어 저장소에서 제거되었습니다.",
-    toastSuccessLocalDataCleared: "앱 캐시 삭제 완료",
-    toastSuccessLocalDataClearedDesc: (count: number) => `${count}개의 앱 관련 로컬 캐시 데이터가 삭제되었습니다.`,
-    toastInfoCachingStarted: "캐싱 시작",
-    toastInfoCachingStartedDesc: (target: string) => `${target}을(를) 가져오고 있습니다...`,
-    toastSuccessGlobalMusicCached: "캐싱 성공",
-    toastSuccessGlobalMusicCachedDesc: "전역 음악 목록이 로컬 저장소에 캐시되었습니다.",
-    toastErrorGlobalMusicCacheFailed: "캐싱 실패",
-    toastErrorGlobalMusicCacheFailedDesc: (errorMsg?: string) => errorMsg ? errorMsg : "전역 음악 목록 캐싱 중 오류 발생.",
-    toastSuccessUserRecordsCached: "캐싱 성공",
-    toastSuccessUserRecordsCachedDesc: (nickname: string) => `${nickname}님의 사용자 기록이 로컬 저장소에 캐시되었습니다.`,
-    toastErrorUserRecordsCacheFailed: "캐싱 실패",
-    toastErrorUserRecordsCacheFailedDesc: (errorMsg?: string) => errorMsg ? errorMsg : "사용자 기록 캐싱 중 오류 발생.",
-    toastErrorNicknameToDeleteNeeded: "닉네임 필요",
-    toastErrorNicknameToDeleteNeededDesc: "삭제할 사용자의 닉네임을 입력해주세요.",
-    toastSuccessUserDataDeleted: (nickname: string, count: number) => `'${nickname}'님의 캐시 데이터 ${count}개를 삭제했습니다.`,
-    toastInfoNoUserDataFound: (nickname: string) => `'${nickname}'에 대한 캐시된 데이터를 찾을 수 없습니다.`,
-    toastInfoLocalApiKeyRefMissingTitle: "로컬 참조 API 키 확인 (정보)",
-    toastInfoLocalApiKeyRefMissingDesc: "고급 설정에 로컬 참조용 API 키가 저장되어 있지 않습니다. 이 경우 서버의 기본 API 키를 사용하며, 문제가 발생하면 서버 관리자에게 문의해주세요. (만약 로컬 키를 직접 입력하셨다면, 해당 키가 우선 사용됩니다.)",
-    toastErrorApiTimeout: (endpoint?: string) => `${endpoint || 'API'} 요청 시간이 초과되었습니다. (30초)`,
-    resultPageDefaultPlayerName: "플레이어",
-    resultPageNotAvailable: "N/A",
-    resultPageErrorApiTokenNotSetResult: "API 토큰이 설정되지 않았습니다. 곡 정보를 가져올 수 없습니다. 고급 설정에서 로컬 토큰을 입력하거나 환경 변수를 확인해주세요.",
-    resultPageErrorNicknameNotProvidedResult: "사용자 닉네임이 제공되지 않아 데이터를 가져올 수 없습니다.",
-    resultPageToastRefreshingDataTitle: "데이터 새로고침 중",
-    resultPageToastRefreshingDataDesc: "사용자 관련 캐시를 지우고 API에서 최신 데이터를 가져옵니다.",
-    resultPageToastSWRRefreshDesc: "최신 데이터를 가져오기 위해 SWR 캐시를 새로고침합니다.",
-    resultPageSyncStatus: (timestamp: string) => `사용자 데이터 동기화: ${timestamp}`,
-    resultPageSyncStatusNoCache: "캐시된 사용자 데이터가 없거나 만료되었습니다.",
-    resultPageSyncStatusChecking: "동기화 상태 확인 중...",
-    resultPageRefreshButton: "사용자 데이터 새로고침",
-    resultPageStrategyTitle: "계산 전략 선택",
-    resultPageStrategyB30Focus: "Best 30 집중",
-    resultPageStrategyN20Focus: "New 20 집중",
-    resultPageStrategyCombinedFloor: "전체 (저점 우선)",
-    resultPageStrategyCombinedPeak: "전체 (고점 우선)",
-    resultPageStrategyNone: "선택 안함",
-    resultPageTabBest30: "Best 30",
-    resultPageTabNew20: "New 20",
-    resultPageTabCombined: "Best30 + New20",
-    resultPageLoadingSongsTitle: "곡 데이터를 불러오는 중입니다...",
-    resultPageLoadingCacheCheck: "캐시를 확인/갱신 중입니다...",
-    resultPageLoadingApiFetch: "Chunirec API에서 데이터를 가져오고 있습니다. 잠시만 기다려주세요.",
-    resultPageLoadingDataStateCheck: "데이터 상태 확인 중...",
-    resultPageErrorLoadingTitle: "데이터 로딩 오류",
-    resultPageErrorLoadingDesc: "입력한 닉네임이 정확한지, Chunirec에 데이터가 공개되어 있는지, 또는 API 토큰이 유효한지 확인해주세요. 문제가 지속되면 '데이터 새로고침' 버튼을 사용해보세요.",
-    resultPageButtonBackToCalc: "메인 페이지로 돌아가기",
-    resultPageCardTitleBest30: "Best 30 곡",
-    resultPageCardTitleNew20: "New 20 곡",
-    resultPageCardTitleCombined: "Best 30 + New 20 (통합 보기)",
-    resultPageNoBest30Data: "Best 30 곡 데이터가 없습니다. (Chunirec API의 `rating_data.json` 응답을 확인해주세요)",
-    resultPageNoNew20Data: "New 20 곡 데이터가 없습니다. 사용자가 NewSongs.json에 포함된 곡을 플레이하지 않았거나, 관련 API 데이터 로딩에 실패했을 수 있습니다. (콘솔 로그 확인)",
-    resultPageSuspenseFallback: "결과 로딩 중...",
-    resultPageToastApiLoadSuccessTitle: "데이터 로드 완료 (SWR)",
-    resultPageToastApiLoadSuccessDesc: "SWR을 통해 최신 데이터를 성공적으로 불러왔습니다.",
-    resultPageToastCacheLoadSuccessDesc: "로컬 캐시에서 데이터를 성공적으로 불러왔습니다。",
-    resultPageToastCacheLoadSuccessTitle: "데이터 로드 완료 (캐시)",
-    resultPageHeaderCurrent: "현재:",
-    resultPageHeaderTarget: "목표:",
-    resultPageNoCombinedData: "Best 30 및 New 20 곡 데이터가 모두 없습니다.",
-    resultPageErrorInvalidRatingsInput: "무효한 레이팅 입력값입니다. 현재 또는 목표 레이팅을 확인해주세요.",
-    resultPageLogNoStrategy: "계산 전략이 선택되지 않았습니다. 현재 곡 데이터를 표시합니다.",
-    resultPagePromptSelectStrategySuffix: "에서 계산 기준을 선택하여 시뮬레이션을 시작하세요.",
-    resultPageLogSimulationStarting: "시뮬레이션을 준비 중입니다...",
-    resultPageErrorSimulationGeneric: (errorMsg: string) => `시뮬레이션 중 오류 발생: ${errorMsg}`,
-    reachableRatingB30OnlyMessage: (rating: string) => `[Best 30 집중 모드] 현재 New 20 곡을 유지할 경우, Best 30 곡만으로는 도달 가능한 최대 레이팅이 약 ${rating} 입니다. 목표 레이팅이 이보다 높다면 이 전략으로는 달성할 수 없습니다.`,
-    reachableRatingN20OnlyMessage: (rating: string) => `[New 20 집중 모드] 현재 Best 30 곡을 유지할 경우, New 20 곡만으로는 도달 가능한 최대 레이팅이 약 ${rating} 입니다. 목표 레이팅이 이보다 높다면 이 전략으로는 달성할 수 없습니다.`,
-    resultPageTargetReachedFmt: (overall: string, b30: string, n20: string) => `목표 달성! 최종 종합 레이팅: ${overall} (B30: ${b30}, N20: ${n20})`,
-    resultPageStuckBothBaseFmt: (overall: string) => `B30과 N20 모두 더 이상 개선할 수 없습니다. 최종 종합: ${overall}`,
-    resultPageDetailRatingsAvgFmt: (b30Avg: string, n20Avg?: string) => ` (B30 평균: ${b30Avg}${n20Avg ? `, N20 평균: ${n20Avg}` : ''})`,
-    // Tooltip translations
-    tooltipChunirecNicknameContent: "https://chunirec.net/ 에서 등록한 데이터를 불러옵니다. 해당 사이트에서 데이터의 사전 등록이 필요합니다.",
-    tooltipTargetRatingContent: "자신이 도달하고 싶은 목표 레이팅을 입력합니다.",
-    tooltipCalcStrategyContentLine1: "<strong>Best 30 집중:</strong> Best 30 곡들만으로 목표 달성 경로를 계산합니다.",
-    tooltipCalcStrategyContentLine2: "<strong>New 20 집중:</strong> New 20 곡들만으로 목표 달성 경로를 계산합니다.",
-    tooltipCalcStrategyContentLine3: "<strong>전체(저점우선):</strong> 모든 곡을 대상으로, 현재 레이팅이 낮은 곡부터 점수를 올리는 현실적인 경로를 계산합니다.",
-    tooltipCalcStrategyContentLine4: "<strong>전체(고점우선):</strong> 모든 곡을 대상으로, 현재 레이팅이 높은 곡을 더 성장시키는 효율적인 경로를 계산합니다.",
-    tooltipResultTabsContent: "시뮬레이션 결과 목록에서 점수를 올리기 어렵거나 원치 않는 곡을 클릭하여 계산에서 제외할 수 있습니다.",
-    tooltipLocalApiKeyContent: "https://developer.chunirec.net/manage/ 에서 발급받은 Chunirec API 액세스 토큰을 사용할 수 있습니다. 공식 API 오류 발생 시 대체 수단으로 활용 가능합니다.",
-    simulationSearchTitle: "시뮬레이션 대상 악곡 검색",
-    tooltipSimulationSearchContent: "검색창을 통해 시뮬레이션에 추가할 곡을 찾을 수 있습니다.",
+export type Locale = 'KR' | 'JP';
+
+const translations = {
+    // General
+    homePageTitle: { KR: '추니즘 레이팅 계산기', JP: 'チュウニズムレーティング計算機' },
+    languageToggleKR: { KR: '한국어', JP: '韓国語' },
+    languageToggleJP: { KR: '日本語', JP: '日本語' },
+
+    // Form
+    formTitle: { KR: '레이팅 정보 입력', JP: 'レーティング情報入力' },
+    formDescription: { KR: 'Chunirec의 닉네임과 현재 레이팅을 입력해주세요.', JP: 'Chunirecのニックネームと現在のレーティングを入力してください。' },
+    nicknameLabel: { KR: '닉네임', JP: 'ニックネーム' },
+    nicknamePlaceholder: { KR: 'Chunirec 닉네임', JP: 'Chunirec ニックネーム' },
+    fetchRatingButton: { KR: '레이팅 정보 가져오기', JP: 'レーティング情報を取得' },
+    currentRatingLabel: { KR: '현재 레이팅', JP: '現在のレーティング' },
+    currentRatingPlaceholder: { KR: '예: 17.03', JP: '例: 17.03' },
+    targetRatingLabel: { KR: '목표 레이팅', JP: '目標レーティング' },
+    targetRatingPlaceholder: { KR: '예: 17.10', JP: '例: 17.10' },
+    submitButton: { KR: '결과 보기', JP: '結果を見る' },
+    
+    // Form Toasts
+    toastNicknameRequired: { KR: '닉네임을 입력해주세요.', JP: 'ニックネームを入力してください。' },
+    toastRatingRequired: { KR: '현재 레이팅을 입력해주세요.', JP: '現在のレーティングを入力してください。' },
+    toastInvalidRating: { KR: '유효한 레이팅 값을 입력해주세요. (예: 17.03)', JP: '有効なレーティング値を入力してください。(例: 17.03)' },
+    toastTargetRatingRequired: { KR: '목표 레이팅을 입력해주세요.', JP: '目標レーティングを入力してください。' },
+    toastInvalidTargetRating: { KR: '유효한 목표 레이팅 값을 입력해주세요. (예: 17.10)', JP: '有効な目標レーティング値を入力してください。(例: 17.10)' },
+    toastTargetRatingTooLow: { KR: '목표 레이팅은 현재 레이팅보다 높아야 합니다.', JP: '目標レーティングは現在のレーティングより高い必要があります。' },
+    
+    // Result Page
+    resultPageDefaultPlayerName: { KR: '플레이어', JP: 'プレイヤー' },
+    resultPageNotAvailable: { KR: 'N/A', JP: 'N/A' },
+    resultPageButtonBackToCalc: { KR: '계산기로 돌아가기', JP: '計算機に戻る' },
+    resultPageHeaderCurrent: { KR: '현재', JP: '現在' },
+    
+    resultPageSyncStatusChecking: { KR: '캐시 확인 중...', JP: 'キャッシュ確認中...' },
+    resultPageSyncStatusNoCache: { KR: '새로고침 정보 없음', JP: 'リフレッシュ情報なし' },
+    resultPageSyncStatus: { KR: '{0}에 마지막으로 새로고침됨', JP: '{0}に最終更新' },
+    
+    resultPageRefreshButton: { KR: '데이터 새로고침', JP: 'データ更新' },
+    resultPageToastRefreshingDataTitle: { KR: '데이터 새로고침', JP: 'データ更新' },
+    resultPageToastSWRRefreshDesc: { KR: '최신 정보를 서버에서 다시 가져옵니다.', JP: '最新情報をサーバーから再取得します。' },
+    
+    resultPageLoadingSongsTitle: { KR: '데이터 로딩 중...', JP: 'データ読み込み中...' },
+    resultPageLoadingCacheCheck: { KR: '캐시된 데이터를 확인하고 있습니다...', JP: 'キャッシュされたデータを確認しています...' },
+    resultPageLoadingApiFetch: { KR: 'API로부터 최신 플레이 데이터를 가져오고 있습니다...', JP: 'APIから最新のプレイデータを取得しています...' },
+    resultPageLoadingDataStateCheck: { KR: '데이터 상태 확인 중...', JP: 'データ状態確認中...' },
+
+    resultPageErrorLoadingTitle: { KR: '데이터 로딩 오류', JP: 'データ読み込みエラー' },
+    resultPageErrorLoadingDesc: { KR: '데이터를 가져오는 중 오류가 발생했습니다. 닉네임이 올바른지, API 서버가 정상인지 확인 후 다시 시도해주세요.', JP: 'データの取得中にエラーが発生しました。ニックネームが正しいか、APIサーバーが正常か確認後、再試行してください。' },
+    resultPageNoBest30Data: { KR: 'Best 30 기록이 없습니다.', JP: 'Best 30の記録がありません。' },
+    resultPageNoNew20Data: { KR: 'New 20 기록이 없습니다.', JP: 'New 20の記録がありません。' },
+    resultPageNoCombinedData: { KR: '표시할 곡 데이터가 없습니다.', JP: '表示する曲データがありません。' },
+
+    resultPageCardTitleBest30: { KR: 'Best 30', JP: 'Best 30' },
+    resultPageCardTitleNew20: { KR: 'New 20', JP: 'New 20' },
+    resultPageCardTitleCombined: { KR: '상위 50곡 통합', JP: '上位50曲統合' },
+
+    resultPageTabBest30: { KR: 'Best 30', JP: 'Best 30' },
+    resultPageTabNew20: { KR: 'New 20', JP: 'New 20' },
+    resultPageTabCombined: { KR: '통합', JP: '統合' },
+    
+    // Song Card
+    songCardScoreLabel: { KR: '점수', JP: 'スコア' },
+    songCardRatingLabel: { KR: '레이팅', JP: 'レーティング' },
+    songCardTargetScoreLabel: { KR: '목표 점수', JP: '目標スコア' },
+    songCardTargetRatingLabel: { KR: '목표 레이팅', JP: '目標レーティング' },
+    songCardExcluded: { KR: '제외됨', JP: '除外済み' },
+    
+    // Tooltips
+    tooltipResultTabsContent: { KR: 'Best 30, New 20, 그리고 두 목록을 합쳐 레이팅 순으로 정렬한 결과를 볼 수 있습니다.', JP: 'Best 30, New 20, そして両リストを合わせてレーティング順にソートした結果を見ることができます。' },
+    tooltipSimulationSearchContent: { KR: '검색창을 통해 시뮬레이션에 추가할 곡을 찾을 수 있습니다.', JP: '検索ボックスでシミュレーションに追加する曲を検索できます。' },
+    
+    // Advanced Settings
+    advancedSettingsTitle: { KR: '고급 설정', JP: '詳細設定' },
+    calculationStrategyLabel: { KR: '계산 전략', JP: '計算戦略' },
+    strategyB30Focus: { KR: 'Best 30 집중', JP: 'Best 30 集中' },
+    strategyN20Focus: { KR: 'New 20 집중', JP: 'New 20 集中' },
+    strategyHybridFloor: { KR: '하이브리드 (Floor)', JP: 'ハイブリッド (Floor)' },
+    strategyHybridPeak: { KR: '하이브리드 (Peak)', JP: 'ハイブリッド (Peak)' },
+    strategyNone: { KR: '선택 안함', JP: '選択しない' },
+    
+    // Simulation Logic & Status
+    resultPageLogSimulationStarting: { KR: '시뮬레이션을 시작합니다...', JP: 'シミュレーションを開始します...' },
+    resultPageTargetReachedFmt: { KR: '목표 달성! 최종 레이팅: {0} (B30: {1}, N20: {2})', JP: '目標達成！最終レーティング: {0} (B30: {1}, N20: {2})' },
+    resultPageStuckBothBaseFmt: { KR: '더 이상 레이팅을 올릴 수 없습니다. 현재: {0}.', JP: 'これ以上レーティングを上げることはできません。現在: {0}.' },
+    resultPageDetailRatingsAvgFmt: { KR: ' (B30 평균: {0}, N20 평균: {1})', JP: ' (B30平均: {0}, N20平均: {1})' },
+    
+    reachableRatingB30OnlyMessage: { KR: 'B30 곡만으로는 목표 레이팅에 도달할 수 없습니다. 최대 예상 레이팅: {0}', JP: 'B30の曲だけでは目標レーティングに到達できません。最大予想レーティング: {0}' },
+    reachableRatingN20OnlyMessage: { KR: 'NEW SONG만으로는 목표 레이팅에 도달할 수 없습니다. 최대 예상 레이팅: {0}', JP: 'NEW SONGだけでは目標レーティングに到達できません。最大予想レーティング: {0}' },
+    
+    resultPageErrorSimulationGeneric: { KR: '시뮬레이션 중 오류가 발생했습니다: {0}', JP: 'シミュレーション中にエラーが発生しました: {0}' },
+    
+    // Custom Simulation
+    simulationSearchTitle: { KR: "시뮬레이션 대상 악곡 검색", JP: "シミュレーション対象楽曲検索" },
     simulationSearchPlaceholder: { KR: "악곡 제목 검색...", JP: "楽曲名を検索..." },
     simulationTargetSongsTitle: { KR: "시뮬레이션 대상 악곡", JP: "シミュレーション対象楽曲" },
     simulationTargetSongsPlaceholder: { KR: "검색을 통해 시뮬레이션에 포함할 곡을 추가하세요.", JP: "検索してシミュレーションに含める曲を追加してください。" },
@@ -181,235 +102,30 @@ export const translations = {
     noB30TargetPool: { KR: "B30에 추가할 곡이 없습니다.", JP: "B30に追加する曲がありません。" },
     noN20TargetPool: { KR: "NEW SONG에 추가할 곡이 없습니다.", JP: "NEW SONGに追加する曲がありません。" },
     unreachableRatingCustomMessage: { KR: "목표 레이팅까지 약 {0}이(가) 부족합니다.", JP: "目標レートまで約{0}が不足しています。" },
-  },
-  JP: {
-    homePageTitle: "ChuniCalc 2",
-    languageToggleKR: "KR (韓国語)",
-    languageToggleJP: "JP (日本語)",
-    // ChuniCalcForm
-    formTitle: "ChuniCalc 2",
-    formDescription: "チュウニズム成長シミュレーター。",
-    nicknameLabel: "ニックネーム (Chunirec User Name)",
-    nicknamePlaceholder: "例: chunirec",
-    fetchRatingButton: "照会",
-    nicknameHelp: "Chunirecのニックネームを入力して現在のレーティングを照会します。",
-    currentRatingLabel: "現在レーティング",
-    currentRatingPlaceholder: "Chunirecユーザー名を入力して照会してください",
-    targetRatingLabel: "目標レーティング",
-    targetRatingPlaceholder: "例: 16.00",
-    targetRatingHelp: "目標レーティングを入力してください。(最大17.50)",
-    calculateButton: "計算して結果を見る",
-    // AdvancedSettings
-    advancedSettingsTitle: "詳細設定",
-    advancedSettingsDesc: "アプリ設定と開発者ツールを管理します。",
-    localApiKeyLabel: "ローカルAPIキー参照 (任意)",
-    localApiKeyPlaceholder: "個人用Chunirec APIトークン",
-    saveApiKeyButton: "ローカル参照用APIキーを保存/更新",
-    localApiKeyHelpUpdated: "ここにAPIキーを保存しておくと、API呼び出し時に優先的に使用され、空の場合はサーバーのデフォルトキーが使用されます。空にして保存すると削除されます。",
-    adminNameLabel: "管理者名",
-    adminNamePlaceholder: "管理者名を入力",
-    adminPasswordLabel: "開発者認証",
-    adminPasswordPlaceholder: "パスワードを入力",
-    authenticateButton: "認証",
-    authenticationFailedToast: "認証失敗。名前またはパスワードを確認してください。",
-    authenticationSuccessToast: "開発者認証成功！",
-    developerSectionTitle: "開発者ツール",
-    developerToolsToggleShow: "開発者ツールの詳細を表示",
-    developerToolsToggleHide: "開発者ツールの詳細を非表示",
-    developerModeActiveMessage: "開発者モードが有効になりました。ページを再読み込みすると再認証が必要です。",
-    goToApiTestPageButton: "APIテストページへ移動",
-    goToSimulationTestPageButton: "シミュレーションテストページへ移動",
-    manualCachingLabel: "手動データキャッシュ",
-    cacheGlobalMusicButton: "グローバル楽曲リストをキャッシュ (music/showall)",
-    cacheUserNicknameLabel: "キャッシュするユーザーニックネーム",
-    cacheUserNicknamePlaceholder: "Chunirecニックネーム",
-    cacheUserRecordsButton: "該当ユーザー記録をキャッシュ (records/showall)",
-    deleteSpecificUserDataLabel: "特定のユーザーキャッシュデータを削除",
-    deleteSpecificUserDataDesc: "以下にニックネームを入力して、該当するユーザーのすべてのキャッシュデータをローカルストレージから削除します。",
-    deleteUserNicknameLabel: "削除するユーザーのニックネーム",
-    deleteUserNicknamePlaceholder: "削除するニックネームを入力",
-    deleteUserDataButton: "該当ユーザーのデータを削除",
-    clearLocalDataButton: "すべてのアプリキャッシュデータを削除",
-    clearLocalDataHelp: "アプリがローカルストレージに保存したすべてのキャッシュデータ（UI設定、API応答など）を削除します。参照用APIキーは削除されません。",
-    contactInfoLabel: "お問い合わせと情報",
-    contactInfoBugReport: "バグレポートおよびその他のお問い合わせ:",
-    appVersion: "Chunicalc Ver 2.0.0",
-    // Toast Messages JP
-    toastErrorApiKeyNotSet: "APIキーエラー",
-    toastErrorApiKeyNotSetDesc: "Chunirec APIトークンがサーバーに設定されていないか、無効です。ホスティング環境設定を確認してください。",
-    toastErrorNicknameNeeded: "ニックネーム必須",
-    toastErrorNicknameNeededDesc: "ニックネームを入力しないとレーティングを照会できません。",
-    toastErrorApiKeyMissing: "APIトークンなし",
-    toastErrorApiKeyMissingDesc: "APIトークンが設定されていないため、レーティングを照会できません。詳細設定または環境変数を確認してください。",
-    toastErrorUserNotFound: "ユーザーなし",
-    toastErrorUserNotFoundDesc: (nickname: string) => `ニックネーム '${nickname}' に該当するユーザーが見つからないか、プレイデータがありません。`,
-    toastErrorAccessDenied: "アクセス禁止",
-    toastErrorAccessDeniedDesc: (nickname: string, code?: number) => code ? `ユーザー '${nickname}' のデータへのアクセス権限がありません。(エラーコード: ${code})` : "非公開ユーザーであるか、フレンドではないためアクセスできません。",
-    toastErrorApiRequestFailed: "APIリクエスト失敗",
-    toastErrorApiRequestFailedDesc: (status: number, message?: string) => `APIリクエスト失敗 (ステータス: ${status})${message ? `: ${message}` : ''}`,
-    toastErrorApiLogicalError: "APIロジックエラー",
-    toastErrorApiLogicalErrorDesc: (message: string) => `APIからエラーが返されました: ${message}`,
-    toastSuccessRatingFetched: "レーティング照会成功！",
-    toastSuccessRatingFetchedDesc: (playerName: string, rating: string) => `'${playerName}'様の現在レーティング: ${rating}`,
-    toastErrorInvalidRatingData: "データエラー",
-    toastErrorInvalidRatingDataDesc: "レーティング情報を取得しましたが、形式が正しくないか、プレイデータがありません。",
-    toastErrorRatingFetchFailed: "照会失敗",
-    toastErrorRatingFetchFailedDesc: (errorMsg: string) => `レーティングの取得中にエラーが発生しました: ${errorMsg}`,
-    toastErrorMissingInfo: "情報不足",
-    toastErrorMissingInfoDesc: "現在レーティング(照会必須)と目標レーティングを両方入力してください。",
-    toastErrorInvalidInput: "不正な入力",
-    toastErrorInvalidInputDesc: "レーティングは数値で入力する必要があります。",
-    toastErrorCurrentRatingTooHigh: "現在レーティングが高すぎます",
-    toastErrorCurrentRatingTooHighDesc: "現在レーティングが17.50以上です。この計算機ではこれ以上の成長を予測できません。",
-    toastErrorCurrentRatingTooLow: (minValue: string | number) => `現在のレーティングは${minValue}以上である必要があります。`,
-    toastErrorCurrentRatingTooHighForm: (maxValue: string | number) => `現在のレーティングは${maxValue}以下である必要があります。`,
-    toastErrorTargetRatingTooLow: (minValue: string | number) => `目標レーティングは${minValue}以上である必要があります。`,
-    toastErrorTargetRatingTooHighForm: (maxValue: string | number) => `目標レーティングは${maxValue}以下である必要があります。`,
-    toastErrorRatingInvalidStep: "レーティングは0.01単位で入力してください。",
-    toastErrorInvalidRatingRange: "不正なレーティング範囲",
-    toastErrorInvalidRatingRangeDesc: "現在レーティングは0.00-17.49、目標レーティングは0.00-17.50の間である必要があります。",
-    toastErrorTargetRating: "目標レーティングエラー",
-    toastErrorTargetRatingDesc: "目標レーティングは現在レーティングより高くなければなりません。",
-    toastSuccessLocalApiKeySaved: "ローカル参照用APIキー保存済",
-    toastSuccessLocalApiKeySavedDesc: "ローカル参照用APIキーがブラウザストレージに正常に保存されました。",
-    toastSuccessLocalApiKeyRemoved: "ローカル参照用APIキー削除済",
-    toastSuccessLocalApiKeyRemovedDesc: "ローカル参照用APIキーが空のため、ストレージから削除されました。",
-    toastSuccessLocalDataCleared: "アプリキャッシュ削除完了",
-    toastSuccessLocalDataClearedDesc: (count: number) => `${count}個のアプリ関連ローカルキャッシュデータが削除されました。`,
-    toastInfoCachingStarted: "キャッシュ開始",
-    toastInfoCachingStartedDesc: (target: string) => `${target}を取得しています...`,
-    toastSuccessGlobalMusicCached: "キャッシュ成功",
-    toastSuccessGlobalMusicCachedDesc: "グローバル楽曲リストがローカルストレージにキャッシュされました。",
-    toastErrorGlobalMusicCacheFailed: "キャッシュ失敗",
-    toastErrorGlobalMusicCacheFailedDesc: (errorMsg?: string) => errorMsg ? errorMsg : "グローバル楽曲リストのキャッシュ中にエラー発生。",
-    toastSuccessUserRecordsCached: "キャッシュ成功",
-    toastSuccessUserRecordsCachedDesc: (nickname: string) => `${nickname}様のユーザー記録がローカルストレージにキャッシュされました。`,
-    toastErrorUserRecordsCacheFailed: "キャッシュ失敗",
-    toastErrorUserRecordsCacheFailedDesc: (errorMsg?: string) => errorMsg ? errorMsg : "ユーザー記録のキャッシュ中にエラー発生。",
-    toastErrorNicknameToDeleteNeeded: "ニックネーム必須",
-    toastErrorNicknameToDeleteNeededDesc: "削除するユーザーのニックネームを入力してください。",
-    toastSuccessUserDataDeleted: (nickname: string, count: number) => `'${nickname}'様のキャッシュデータ${count}件を削除しました。`,
-    toastInfoNoUserDataFound: (nickname: string) => `'${nickname}'に関するキャッシュデータが見つかりません。`,
-    toastInfoLocalApiKeyRefMissingTitle: "ローカル参照APIキー確認 (情報)",
-    toastInfoLocalApiKeyRefMissingDesc: "詳細設定にローカル参照用APIキーが保存されていません。この場合、サーバーのデフォルトAPIキーを使用し、問題が発生した場合はサーバー管理者に問い合わせてください。(もしローカルキーを直接入力された場合は、そのキーが優先使用されます。)",
-    toastErrorApiTimeout: (endpoint?: string) => `${endpoint || 'API'}リクエストがタイムアウトしました。(30秒)`,
-    resultPageDefaultPlayerName: "プレイヤー",
-    resultPageNotAvailable: "N/A",
-    resultPageErrorApiTokenNotSetResult: "APIトークンが設定されていません。曲情報を取得できません。詳細設定でローカルトークンを入力するか、環境変数を確認してください。",
-    resultPageErrorNicknameNotProvidedResult: "ユーザーニックネームが提供されていないため、データを取得できません。",
-    resultPageToastRefreshingDataTitle: "データ更新中",
-    resultPageToastRefreshingDataDesc: "ユーザー関連キャッシュをクリアし、APIから最新データを取得します。",
-    resultPageToastSWRRefreshDesc: "最新データを取得するためにSWRキャッシュを更新します。",
-    resultPageSyncStatus: (timestamp: string) => `ユーザーデータ同期: ${timestamp}`,
-    resultPageSyncStatusNoCache: "キャッシュされたユーザーデータがないか、期限切れです。",
-    resultPageSyncStatusChecking: "同期状態を確認中...",
-    resultPageRefreshButton: "ユーザーデータ更新",
-    resultPageStrategyTitle: "計算戦略選択",
-    resultPageStrategyB30Focus: "Best 30 集中",
-    resultPageStrategyN20Focus: "New 20 集中",
-    resultPageStrategyCombinedFloor: "全体 (低点優先)",
-    resultPageStrategyCombinedPeak: "全体 (高点優先)",
-    resultPageStrategyNone: "選択なし",
-    resultPageTabBest30: "Best 30",
-    resultPageTabNew20: "New 20",
-    resultPageTabCombined: "Best30 + New20",
-    resultPageLoadingSongsTitle: "楽曲データを読み込み中です...",
-    resultPageLoadingCacheCheck: "キャッシュを確認/更新中です...",
-    resultPageLoadingApiFetch: "Chunirec APIからデータを取得中です。しばらくお待ちください。",
-    resultPageLoadingDataStateCheck: "データ状態を確認中...",
-    resultPageErrorLoadingTitle: "データ読み込みエラー",
-    resultPageErrorLoadingDesc: "入力したニックネームが正しいか、Chunirecにデータが公開されているか、またはAPIトークンが有効か確認してください。問題が続く場合は、「データ更新」ボタンを使用してみてください。",
-    resultPageButtonBackToCalc: "メインページに戻る",
-    resultPageCardTitleBest30: "Best 30 曲",
-    resultPageCardTitleNew20: "New 20 曲",
-    resultPageCardTitleCombined: "Best 30 + New 20 (統合表示)",
-    resultPageNoBest30Data: "Best 30 曲データがありません。(Chunirec APIの`rating_data.json`応答を確認してください)",
-    resultPageNoNew20Data: "New 20 曲データがありません。ユーザーがNewSongs.jsonに含まれる曲をプレイしていないか、関連APIデータの読み込みに失敗した可能性があります。(コンソールログ確認)",
-    resultPageSuspenseFallback: "結果を読み込み中...",
-    resultPageToastApiLoadSuccessTitle: "データロード完了 (SWR)",
-    resultPageToastApiLoadSuccessDesc: "SWRを通じて最新データを正常にロードしました。",
-    resultPageToastCacheLoadSuccessDesc: "ローカルキャッシュからデータを正常にロードしました。",
-    resultPageToastCacheLoadSuccessTitle: "データロード完了 (キャッシュ)",
-    resultPageHeaderCurrent: "現在:",
-    resultPageHeaderTarget: "目標:",
-    resultPageNoCombinedData: "Best 30 および New 20 曲データが両方ありません。",
-    resultPageErrorInvalidRatingsInput: "無効なレーティング入力値です。現在または目標レーティングを確認してください。",
-    resultPageLogNoStrategy: "計算戦略が選択されていません。現在の曲データを表示します。",
-    resultPagePromptSelectStrategySuffix: "で計算基準を選択してシミュレーションを開始してください。",
-    resultPageLogSimulationStarting: "シミュレーションを準備中です...",
-    resultPageErrorSimulationGeneric: (errorMsg: string) => `シミュレーション中にエラー発生: ${errorMsg}`,
-    reachableRatingB30OnlyMessage: (rating: string) => `[Best 30 集中モード] 現在のNew 20曲を維持する場合、Best 30曲のみで到達可能な最大レーティングは約 ${rating} です。目標レーティングがこれより高い場合、この戦略では達成できません。`,
-    reachableRatingN20OnlyMessage: (rating: string) => `[New 20 集中モード] 現在のBest 30曲を維持する場合、New 20曲のみで到達可能な最大レーティングは約 ${rating} です。目標レーティングがこれより高い場合、この戦略では達成できません。`,
-    resultPageTargetReachedFmt: (overall: string, b30: string, n20: string) => `目標達成！最終総合レーティング: ${overall} (B30: ${b30}, N20: ${n20})`,
-    resultPageStuckBothBaseFmt: (overall: string) => `B30およびN20のどちらもこれ以上改善できません。最終総合: ${overall}`,
-    resultPageDetailRatingsAvgFmt: (b30Avg: string, n20Avg?: string) => ` (B30平均: ${b30Avg}${n20Avg ? `, N20平均: ${n20Avg}` : ''})`,
-    // Tooltip translations JP
-    tooltipChunirecNicknameContent: "https://chunirec.net/ で登録されたデータを読み込みます。当該サイトでの事前登録が必要です。",
-    tooltipTargetRatingContent: "自分が到達したい目標レーティングを入力します。",
-    tooltipCalcStrategyContentLine1: "Best 30 集中: Best 30の曲のみで目標達成経路を計算します。",
-    tooltipCalcStrategyContentLine2: "New 20 集中: New 20の曲のみで目標達成経路を計算します。",
-    tooltipCalcStrategyContentLine3: "全体(低点優先): 全ての曲を対象に、現在レーティングが低い曲からスコアを上げる現実的な経路を計算します。",
-    tooltipCalcStrategyContentLine4: "全体(高点優先): 全ての曲を対象に、現在レーティングが高い曲をさらに成長させる効率的な経路を計算します。",
-    tooltipResultTabsContent: "シミュレーション結果リストで、スコアアップが難しい、または望まない曲をクリックして計算から除外できます。",
-    tooltipLocalApiKeyContent: "https://developer.chunirec.net/manage/ で発行されたChunirec APIアクセストークンを使用できます。公式APIエラー発生時の代替手段として活用可能です。",
-    simulationSearchTitle: "シミュレーション対象楽曲検索",
-    tooltipSimulationSearchContent: "検索ボックスでシミュレーションに追加する曲を検索できます。",
-    simulationSearchPlaceholder: "曲名またはアーティストで検索...",
-    simulationTargetSongsTitle: { KR: "시뮬레이션 대상 악곡", JP: "シミュレーション対象楽曲" },
-    simulationTargetSongsPlaceholder: { KR: "검색을 통해 시뮬레이션에 포함할 곡을 추가하세요.", JP: "検索してシミュレーションに含める曲を追加してください。" },
-    startSimulationButton: { KR: "시뮬레이션 시작", JP: "シミュレーション開始" },
-    b30TargetPoolTitle: { KR: "B30 대상 풀", JP: "B30対象プール" },
-    n20TargetPoolTitle: { KR: "NEW SONG 대상 풀", JP: "NEW SONG対象プール" },
-    noB30TargetPool: { KR: "B30에 추가할 곡이 없습니다.", JP: "B30に追加する曲がありません。" },
-    noN20TargetPool: { KR: "NEW SONG에 추가할 곡이 없습니다.", JP: "NEW SONGに追加する曲がありません。" },
-    unreachableRatingCustomMessage: { KR: "목표 레이팅까지 약 {0}이(가) 부족합니다.", JP: "目標レートまで約{0}が不足しています。" },
-  },
+    
+    // Fallback
+    resultPageSuspenseFallback: { KR: "결과 페이지 로딩 중...", JP: "結果ページを読み込み中..." },
 };
 
-export type Locale = keyof typeof translations;
 
-type BaseTranslationKeys = keyof typeof translations['KR'];
+export type MessageKey = keyof typeof translations;
 
-export type TranslationFunction<P extends any[] = any[], R = string> = (...args: P) => R;
+export function getTranslation(locale: Locale, key: MessageKey): string {
+    const entry = translations[key];
+    if (!entry) {
+        console.warn(`Translation key "${key}" not found.`);
+        return String(key);
+    }
+    
+    if (typeof entry === 'object' && (entry as any)[locale]) {
+        return (entry as any)[locale];
+    }
 
-export type TranslationValues = {
-  [K in BaseTranslationKeys]: (typeof translations)['KR'][K] extends TranslationFunction<infer P, infer R>
-    ? TranslationFunction<P, R>
-    : string;
-};
-
-type TranslationArgs<L extends Locale, K extends keyof typeof translations[L]> =
-  typeof translations[L][K] extends TranslationFunction<infer P, any> ? P : [];
-
-export function getTranslation<L extends Locale, K extends keyof typeof translations[L]>(
-  locale: L,
-  key: K,
-  ...args: TranslationArgs<L, K>
-): string {
-  const primaryTranslations = translations[locale] || translations.KR;
-  let messageOrFn: any = primaryTranslations[key as keyof typeof primaryTranslations];
-
-  if (messageOrFn === undefined && locale !== 'KR') {
-    const fallbackTranslations = translations.KR;
-    messageOrFn = fallbackTranslations[key as keyof typeof fallbackTranslations];
-  }
-
-  if (messageOrFn === undefined) {
-    const keyAsString = String(key);
-    const defaultText = args.length > 0 && typeof args[args.length - 1] === 'string' && !Object.keys(primaryTranslations).includes(args[args.length - 1] as string) ? args[args.length - 1] as string : keyAsString;
-    console.warn(`Translation missing for key: ${keyAsString} in locale: ${locale}. Using default: "${defaultText}"`);
-    return defaultText;
-  }
-
-  if (typeof messageOrFn === 'function') {
-    return (messageOrFn as Function)(...args);
-  }
-  return messageOrFn as string;
+    // Fallback for incorrectly structured data during development
+    if (typeof entry === 'object' && (entry as any).KR) {
+      return (entry as any).KR;
+    }
+    
+    console.warn(`Translation for key "${key}" and locale "${locale}" is not a valid structure.`);
+    return String(key);
 }
-
-export type GetTranslationFn = typeof getTranslation;
-export type AllTranslationsType = typeof translations;
-export type KRTranslationKey = keyof AllTranslationsType['KR'];
-export type LocaleType = {
-  [K in KRTranslationKey]: AllTranslationsType['KR'][K];
-};
