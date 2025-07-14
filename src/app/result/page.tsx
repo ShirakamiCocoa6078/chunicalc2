@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import SongCard from "@/components/SongCard";
-import { User, Gauge, Target as TargetIconLucide, ArrowLeft, Loader2, AlertTriangle, BarChart3, TrendingUp, TrendingDown, RefreshCw, Info, Settings2, Activity, Zap, Replace, Rocket, Telescope, CheckCircle2, XCircle, Brain, PlaySquare, ListChecks, FilterIcon, DatabaseZap, FileJson, Server, CalendarDays, BarChartHorizontalBig, FileSearch, Shuffle, Hourglass, X, Focus, HelpCircle } from "lucide-react";
+import { User, Gauge, Target as TargetIconLucide, ArrowLeft, Loader2, AlertTriangle, BarChart3, TrendingUp, TrendingDown, RefreshCw, Info, Settings2, Activity, Zap, Replace, Rocket, Telescope, CheckCircle2, XCircle, Brain, PlaySquare, ListChecks, FilterIcon, DatabaseZap, FileJson, Server, CalendarDays, BarChartHorizontalBig, FileSearch, Shuffle, Hourglass, X, Focus, HelpCircle, PlusCircle, Trash2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -18,11 +18,13 @@ import { getTranslation } from '@/lib/translations';
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useChuniResultData } from "@/hooks/useChuniResultData";
-import type { CalculationStrategy } from "@/types/result-page";
+import type { CalculationStrategy, Song, ShowallApiSongEntry } from "@/types/result-page";
 import { getLocalReferenceApiToken } from '@/lib/get-api-token';
 import { LOCAL_STORAGE_PREFIX } from '@/lib/cache';
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { mapApiSongToAppSong } from "@/lib/rating-utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 function ResultContent() {
@@ -40,6 +42,10 @@ function ResultContent() {
   const [calculationStrategy, setCalculationStrategy] = useState<CalculationStrategy>("none");
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [clientHasMounted, setClientHasMounted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<ShowallApiSongEntry[]>([]);
+  const [simulationTargetSongs, setSimulationTargetSongs] = useState<Song[]>([]);
+
 
   useEffect(() => {
     setClientHasMounted(true);
@@ -72,6 +78,7 @@ function ResultContent() {
     preComputationResult,
     excludedSongKeys,
     toggleExcludeSongKey,
+    allMusicData,
   } = useChuniResultData({
     userNameForApi,
     currentRatingDisplay,
@@ -81,6 +88,30 @@ function ResultContent() {
     clientHasMounted,
     calculationStrategy,
   });
+
+  useEffect(() => {
+    if (!searchQuery) {
+      setSearchResults([]);
+      return;
+    }
+    const lowercasedQuery = searchQuery.toLowerCase();
+    const filtered = allMusicData.filter(song => 
+      song.title.toLowerCase().includes(lowercasedQuery)
+    );
+    setSearchResults(filtered.slice(0, 50)); // 검색 결과 50개로 제한
+  }, [searchQuery, allMusicData]);
+
+  const addSongToSimulation = (song: ShowallApiSongEntry) => {
+    const newSong = mapApiSongToAppSong(song, 0);
+    if (!simulationTargetSongs.some(s => s.uniqueId === newSong.uniqueId)) {
+      setSimulationTargetSongs(prev => [...prev, newSong]);
+    }
+  };
+
+  const removeSongFromSimulation = (uniqueId: string) => {
+    setSimulationTargetSongs(prev => prev.filter(s => s.uniqueId !== uniqueId));
+  };
+
 
   const handleRefreshData = useCallback(() => {
     const defaultPlayerName = getTranslation(locale, 'resultPageDefaultPlayerName');
@@ -131,7 +162,7 @@ function ResultContent() {
     } else if (preComputationResult && currentPhase === 'target_unreachable_info' && preComputationResult.messageKey) {
         statusText = getTranslation(locale, preComputationResult.messageKey as any, preComputationResult.reachableRating.toFixed(4));
         bgColor = "bg-orange-100 dark:bg-orange-900"; textColor = "text-orange-700 dark:text-orange-300"; IconComponent = XCircle;
-    } else if (calculationStrategy === "none" && currentPhase !== 'error_data_fetch' && !isLoadingSongs) {
+    } else if (calculationStrategy === "none" && currentPhase !== 'error_data_fetch' && !isLoadingSongs) { 
         statusText = getTranslation(locale, 'simulationTargetSongsPlaceholder');
         bgColor = "bg-yellow-100 dark:bg-yellow-900"; textColor = "text-yellow-700 dark:text-yellow-300"; IconComponent = Brain;
     } else { 
@@ -251,8 +282,28 @@ function ResultContent() {
             <CardContent className="space-y-4">
               <Input
                 placeholder={getTranslation(locale, 'simulationSearchPlaceholder')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
-              {/* 검색 결과가 여기에 표시됩니다. */}
+              <ScrollArea className="h-60 mt-4 border rounded-md">
+                <div className="p-2 space-y-1">
+                  {searchResults.length > 0 ? (
+                    searchResults.map(song => (
+                      <div key={`${song.id}-${song.diff}`} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
+                        <div className="truncate">
+                          <p className="text-sm font-medium truncate">{song.title}</p>
+                          <p className="text-xs text-muted-foreground">{song.diff}</p>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => addSongToSimulation(song)}>
+                          <PlusCircle className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    searchQuery && <p className="text-sm text-muted-foreground text-center p-4">No results found.</p>
+                  )}
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
 
@@ -284,143 +335,157 @@ function ResultContent() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {simulationTargetSongs.length > 0 ? (
+                    <div className={`grid gap-4 ${best30GridCols}`}>
+                      {simulationTargetSongs.map(song => (
+                        <SongCard
+                          key={song.uniqueId}
+                          song={song}
+                          isExcluded={false} // 시뮬레이션 대상 목록에서는 '제외' 상태를 사용하지 않음
+                          onToggleExclude={() => removeSongFromSimulation(song.uniqueId)}
+                          locale={locale}
+                        />
+                      ))}
+                    </div>
+                  ) : (
                     <div className="text-center text-muted-foreground py-8">
                       <p>{getTranslation(locale, 'simulationTargetSongsPlaceholder')}</p>
                     </div>
+                  )}
                 </CardContent>
             </Card>
 
             <Tabs defaultValue="best30" className="w-full">
                <div className="flex items-start justify-between mb-2">
-                <TabsList className="grid w-full max-w-lg grid-cols-3 gap-1 bg-muted p-1 rounded-lg shadow-inner">
-                  <TabsTrigger value="best30" className="px-2 py-2 text-xs whitespace-nowrap sm:px-3 sm:py-1.5 sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">{getTranslation(locale, 'resultPageTabBest30')}</TabsTrigger>
-                  <TabsTrigger value="new20" className="px-2 py-2 text-xs whitespace-nowrap sm:px-3 sm:py-1.5 sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">{getTranslation(locale, 'resultPageTabNew20')}</TabsTrigger>
-                  <TabsTrigger value="combined" className="px-2 py-2 text-xs whitespace-nowrap sm:px-3 sm:py-1.5 sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">{getTranslation(locale, 'resultPageTabCombined')}</TabsTrigger>
-                </TabsList>
-                 <Tooltip>
-                  <TooltipTrigger asChild>
+              <TabsList className="grid w-full max-w-lg grid-cols-3 gap-1 bg-muted p-1 rounded-lg shadow-inner">
+                <TabsTrigger value="best30" className="px-2 py-2 text-xs whitespace-nowrap sm:px-3 sm:py-1.5 sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">{getTranslation(locale, 'resultPageTabBest30')}</TabsTrigger>
+                <TabsTrigger value="new20" className="px-2 py-2 text-xs whitespace-nowrap sm:px-3 sm:py-1.5 sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">{getTranslation(locale, 'resultPageTabNew20')}</TabsTrigger>
+                <TabsTrigger value="combined" className="px-2 py-2 text-xs whitespace-nowrap sm:px-3 sm:py-1.5 sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">{getTranslation(locale, 'resultPageTabCombined')}</TabsTrigger>
+              </TabsList>
+              <Tooltip>
+                <TooltipTrigger asChild>
                     <HelpCircle className="h-5 w-5 text-muted-foreground cursor-help ml-4" />
-                  </TooltipTrigger>
+                </TooltipTrigger>
                   <TooltipContent side="left" className="max-w-xs sm:max-w-sm">
-                    <p>{getTranslation(locale, 'tooltipResultTabsContent')}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
+                  <p>{getTranslation(locale, 'tooltipResultTabsContent')}</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
 
-              {/* Main content display logic */}
+            {/* Main content display logic */}
               {(isLoadingSongs && currentPhase !== 'error_data_fetch') ? (
-                <div className="flex flex-col items-center justify-center h-64 text-center">
-                  <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-                  <p className="text-xl text-muted-foreground">{getTranslation(locale, 'resultPageLoadingSongsTitle')}</p>
-                  <p className="text-sm text-muted-foreground">
-                    { clientHasMounted && userNameForApi && userNameForApi !== getTranslation(locale, 'resultPageDefaultPlayerName')
-                      ? ( (localStorage.getItem(`${LOCAL_STORAGE_PREFIX}profile_${userNameForApi}`) || localStorage.getItem(`${LOCAL_STORAGE_PREFIX}rating_data_${userNameForApi}`))
-                        ? getTranslation(locale, 'resultPageLoadingCacheCheck')
-                        : getTranslation(locale, 'resultPageLoadingApiFetch'))
-                      : getTranslation(locale, 'resultPageLoadingDataStateCheck')
-                    }
-                  </p>
-                </div>
+              <div className="flex flex-col items-center justify-center h-64 text-center">
+                <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+                <p className="text-xl text-muted-foreground">{getTranslation(locale, 'resultPageLoadingSongsTitle')}</p>
+                <p className="text-sm text-muted-foreground">
+                  { clientHasMounted && userNameForApi && userNameForApi !== getTranslation(locale, 'resultPageDefaultPlayerName')
+                    ? ( (localStorage.getItem(`${LOCAL_STORAGE_PREFIX}profile_${userNameForApi}`) || localStorage.getItem(`${LOCAL_STORAGE_PREFIX}rating_data_${userNameForApi}`)) 
+                      ? getTranslation(locale, 'resultPageLoadingCacheCheck')
+                      : getTranslation(locale, 'resultPageLoadingApiFetch'))
+                    : getTranslation(locale, 'resultPageLoadingDataStateCheck')
+                  }
+                </p>
+              </div>
               ) : errorLoadingSongs ? (
-                 <Card className="border-destructive/50 shadow-lg">
-                    <CardHeader className="flex flex-row items-center space-x-2">
-                        <AlertTriangle className="w-6 h-6 text-destructive" />
-                        <CardTitle className="font-headline text-xl text-destructive">{getTranslation(locale, 'resultPageErrorLoadingTitle')}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p>{errorLoadingSongs}</p>
-                        <p className="text-sm text-muted-foreground mt-2">{getTranslation(locale, 'resultPageErrorLoadingDesc')}</p>
-                    </CardContent>
-                </Card>
+               <Card className="border-destructive/50 shadow-lg">
+                  <CardHeader className="flex flex-row items-center space-x-2">
+                      <AlertTriangle className="w-6 h-6 text-destructive" />
+                      <CardTitle className="font-headline text-xl text-destructive">{getTranslation(locale, 'resultPageErrorLoadingTitle')}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                      <p>{errorLoadingSongs}</p>
+                      <p className="text-sm text-muted-foreground mt-2">{getTranslation(locale, 'resultPageErrorLoadingDesc')}</p>
+                  </CardContent>
+              </Card>
               ) : (!isLoadingSongs && best30SongsData.length === 0 && new20SongsData.length === 0) ? (
-                 <Card className="border-orange-500/50 shadow-lg">
-                    <CardHeader className="flex flex-row items-center space-x-2">
-                        <Info className="w-6 h-6 text-orange-500" />
-                        <CardTitle className="font-headline text-xl text-orange-600">{getTranslation(locale, 'resultPageNoBest30Data')}</CardTitle>
+               <Card className="border-orange-500/50 shadow-lg">
+                  <CardHeader className="flex flex-row items-center space-x-2">
+                      <Info className="w-6 h-6 text-orange-500" />
+                      <CardTitle className="font-headline text-xl text-orange-600">{getTranslation(locale, 'resultPageNoBest30Data')}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                      <p>{getTranslation(locale, 'resultPageErrorLoadingDesc')}</p>
+                       <p className="text-sm mt-1">API 응답에 유효한 Best 30 또는 New 20 곡 데이터가 없습니다. Chunirec 데이터를 확인하거나 새로고침 해보세요.</p>
+                  </CardContent>
+              </Card>
+            ) : (
+              <>
+                <TabsContent value="best30">
+                    <Card>
+                    <CardHeader>
+                      <CardTitle className="font-headline text-2xl">{getTranslation(locale, 'resultPageCardTitleBest30')}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p>{getTranslation(locale, 'resultPageErrorLoadingDesc')}</p>
-                         <p className="text-sm mt-1">API 응답에 유효한 Best 30 또는 New 20 곡 데이터가 없습니다. Chunirec 데이터를 확인하거나 새로고침 해보세요.</p>
-                    </CardContent>
-                </Card>
-              ) : (
-                <>
-                  <TabsContent value="best30">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline text-2xl">{getTranslation(locale, 'resultPageCardTitleBest30')}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {best30SongsData.length > 0 ? (
+                      {best30SongsData.length > 0 ? (
                                 <div className={`grid gap-4 ${best30GridCols}`}>
                                     {best30SongsData.map((song) => (
-                                        <SongCard
+                              <SongCard
                                             key={song.uniqueId}
-                                            song={song}
+                                song={song}
                                             onToggleExclude={() => toggleExcludeSongKey(song.uniqueId)}
                                             isExcluded={excludedSongKeys.includes(song.uniqueId)}
                                             locale={locale}
-                                        />
+                              />
                                     ))}
-                                </div>
-                            ) : (
-                                <p className="text-muted-foreground">{getTranslation(locale, 'resultPageNoBest30Data')}</p>
-                            )}
-                        </CardContent>
-                    </Card>
-                  </TabsContent>
-                  <TabsContent value="new20">
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">{getTranslation(locale, 'resultPageNoBest30Data')}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="new20">
                       <Card>
-                          <CardHeader>
-                              <CardTitle className="font-headline text-2xl">{getTranslation(locale, 'resultPageCardTitleNew20')}</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                              {new20SongsData.length > 0 ? (
+                    <CardHeader>
+                      <CardTitle className="font-headline text-2xl">{getTranslation(locale, 'resultPageCardTitleNew20')}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                         {new20SongsData.length > 0 ? (
                                   <div className={`grid gap-4 ${best30GridCols}`}>
                                       {new20SongsData.map((song) => (
-                                           <SongCard
+                                 <SongCard
                                               key={song.uniqueId}
-                                              song={song}
+                                   song={song}
                                               onToggleExclude={() => toggleExcludeSongKey(song.uniqueId)}
                                               isExcluded={excludedSongKeys.includes(song.uniqueId)}
                                               locale={locale}
-                                          />
+                                 />
                                       ))}
-                                  </div>
-                              ) : (
-                                  <p className="text-muted-foreground">{getTranslation(locale, 'resultPageNoNew20Data')}</p>
-                              )}
-                          </CardContent>
-                      </Card>
-                  </TabsContent>
-                  <TabsContent value="combined">
+                           </div>
+                         ) : (
+                           <p className="text-muted-foreground">{getTranslation(locale, 'resultPageNoNew20Data')}</p>
+                         )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="combined">
                       <Card>
-                          <CardHeader>
-                              <CardTitle className="font-headline text-2xl">{getTranslation(locale, 'resultPageCardTitleCombined')}</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                              {combinedTopSongs.length > 0 ? (
+                    <CardHeader>
+                      <CardTitle className="font-headline text-2xl">{getTranslation(locale, 'resultPageCardTitleCombined')}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {combinedTopSongs.length > 0 ? (
                                   <div className={`grid gap-4 ${best30GridCols}`}>
                                       {combinedTopSongs.map((song) => (
-                                           <SongCard
+                               <SongCard
                                               key={song.uniqueId}
-                                              song={song}
+                                 song={song}
                                               onToggleExclude={() => toggleExcludeSongKey(song.uniqueId)}
                                               isExcluded={excludedSongKeys.includes(song.uniqueId)}
                                               locale={locale}
                                               isCombinedView={true}
-                                          />
+                               />
                                       ))}
-                                  </div>
-                              ) : (
-                                  <p className="text-muted-foreground">{getTranslation(locale, 'resultPageNoCombinedData')}</p>
-                              )}
-                          </CardContent>
-                      </Card>
-                  </TabsContent>
-                </>
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">{getTranslation(locale, 'resultPageNoCombinedData')}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </>
               )}
-            </Tabs>
+          </Tabs>
           </div>
         </div>
       </TooltipProvider>

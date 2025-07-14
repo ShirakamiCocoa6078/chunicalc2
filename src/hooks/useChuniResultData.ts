@@ -405,6 +405,7 @@ export function useChuniResultData({
     preComputationResult: state.preComputationResult,
     excludedSongKeys: state.excludedSongKeys,
     toggleExcludeSongKey,
+    allMusicData: state.allMusicData,
   };
 }
 
