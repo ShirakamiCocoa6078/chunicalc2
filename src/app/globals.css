@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 94.1%; /* Light Gray #F0F0F0 */
+    --foreground: 240 10% 3.9%; /* Dark text */
+
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --primary: 199 76% 53%; /* Vibrant Blue #29ABE2 */
+    --primary-foreground: 0 0% 100%; /* White */
+
+    --secondary: 199 70% 90%; /* Lighter Blue */
+    --secondary-foreground: 199 70% 20%; /* Darker Blue */
+
+    --muted: 0 0% 90%; /* Slightly darker gray */
+    --muted-foreground: 0 0% 45%; 
+
+    --accent: 33 100% 63%; /* Energetic Orange #FFB347 */
+    --accent-foreground: 240 10% 3.9%; /* Dark text on orange */
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 87%; /* Gray border */
+    --input: 0 0% 92%; /* Slightly off-white input background */
+    --ring: 199 76% 53%; /* Primary color for ring */
+
+    --radius: 0.5rem;
+
+    /* Chart colors - can be adjusted if charts are used */
+    --chart-1: 199 76% 53%; /* Primary */
+    --chart-2: 33 100% 63%;  /* Accent */
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+
+    /* Sidebar variables - kept for completeness, adjust if sidebar is used with new theme */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 199 76% 45%; /* Darker primary for sidebar */
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 33 100% 90%; /* Lighter accent for sidebar */
+    --sidebar-accent-foreground: 33 100% 30%; /* Darker accent text */
+    --sidebar-border: 0 0% 89.8%;
+    --sidebar-ring: 199 76% 53%;
+  }
+
+  .dark {
+    --background: 240 10% 10%;
+    --foreground: 0 0% 95%;
+
+    --card: 240 10% 15%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 240 10% 15%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 199 76% 53%; /* Vibrant Blue */
+    --primary-foreground: 0 0% 100%; /* White */
+
+    --secondary: 199 70% 30%; /* Darker muted blue */
+    --secondary-foreground: 0 0% 95%;
+
+    --muted: 240 10% 20%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 33 100% 63%; /* Energetic Orange */
+    --accent-foreground: 240 10% 3.9%; /* Dark text on orange */
+    
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 10% 25%;
+    --input: 240 10% 22%;
+    --ring: 199 76% 53%;
+
+    /* Chart colors - dark theme */
+    --chart-1: 199 76% 53%;
+    --chart-2: 33 100% 63%;
+    --chart-3: 197 37% 74%; /* Lighter version */
+    --chart-4: 43 74% 36%;  /* Darker version */
+    --chart-5: 27 87% 37%;  /* Darker version */
+    
+    /* Sidebar variables - dark theme */
+    --sidebar-background: 240 10% 8%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 199 76% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 33 100% 55%;
+    --sidebar-accent-foreground: 240 10% 3.9%;
+    --sidebar-border: 240 10% 20%;
+    --sidebar-ring: 199 76% 53%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
