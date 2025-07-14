@@ -125,14 +125,14 @@ function ResultContent() {
     if (errorLoadingSongs && (currentPhase === 'error_data_fetch' || currentPhase === 'error_simulation_logic')) {
         statusText = getTranslation(locale, 'resultPageErrorLoadingTitle') + `: ${errorLoadingSongs}`;
         bgColor = "bg-red-100 dark:bg-red-900"; textColor = "text-red-700 dark:text-red-300"; IconComponent = AlertTriangle;
-    } else if (isLoadingSongs && (currentPhase === 'idle' || currentPhase === 'simulating' || (calculationStrategy === 'none' && currentPhase !== 'error_data_fetch'))) { 
+    } else if (isLoadingSongs && (currentPhase === 'idle' || currentPhase === 'simulating' || currentPhase !== 'error_data_fetch')) {
       statusText = getTranslation(locale, 'resultPageLoadingSongsTitle');
       IconComponent = Loader2; iconShouldSpin = true;
     } else if (preComputationResult && currentPhase === 'target_unreachable_info' && preComputationResult.messageKey) {
         statusText = getTranslation(locale, preComputationResult.messageKey as any, preComputationResult.reachableRating.toFixed(4));
         bgColor = "bg-orange-100 dark:bg-orange-900"; textColor = "text-orange-700 dark:text-orange-300"; IconComponent = XCircle;
-    } else if (calculationStrategy === "none" && currentPhase !== 'error_data_fetch' && !isLoadingSongs) { 
-        statusText = getTranslation(locale, 'resultPageStrategyTitle') + getTranslation(locale, 'resultPagePromptSelectStrategySuffix');
+    } else if (calculationStrategy === "none" && currentPhase !== 'error_data_fetch' && !isLoadingSongs) {
+        statusText = getTranslation(locale, 'simulationTargetSongsPlaceholder');
         bgColor = "bg-yellow-100 dark:bg-yellow-900"; textColor = "text-yellow-700 dark:text-yellow-300"; IconComponent = Brain;
     } else { 
         switch (currentPhase) {
@@ -144,7 +144,7 @@ function ResultContent() {
                  statusText = getTranslation(locale, 'resultPageLogSimulationStarting') + " (전체: " + overallRatingStr + ")";
                  IconComponent = PlaySquare; 
             } else { 
-                 statusText = getTranslation(locale, 'resultPageStrategyTitle') + getTranslation(locale, 'resultPagePromptSelectStrategySuffix');
+                 statusText = getTranslation(locale, 'simulationTargetSongsPlaceholder');
                  bgColor = "bg-yellow-100 dark:bg-yellow-900"; textColor = "text-yellow-700 dark:text-yellow-300"; IconComponent = Brain;
             }
             break;
@@ -174,8 +174,8 @@ function ResultContent() {
             if (!isLoadingSongs && calculationStrategy !== "none") { 
               statusText = `알 수 없는 페이즈: ${currentPhase || 'N/A'}. 전체: ${overallRatingStr}`;
               IconComponent = AlertTriangle;
-            } else if (!isLoadingSongs && calculationStrategy === "none"){
-              statusText = getTranslation(locale, 'resultPageStrategyTitle') + getTranslation(locale, 'resultPagePromptSelectStrategySuffix');
+            } else if (!isLoadingSongs){
+              statusText = getTranslation(locale, 'simulationTargetSongsPlaceholder');
               bgColor = "bg-yellow-100 dark:bg-yellow-900"; textColor = "text-yellow-700 dark:text-yellow-300"; IconComponent = Brain;
             }
         }
@@ -233,6 +233,29 @@ function ResultContent() {
             </div>
           </header>
 
+          <Card className="mb-6">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div className="flex items-center">
+                <FileSearch className="w-6 h-6 mr-3 text-primary" />
+                <CardTitle>{getTranslation(locale, 'simulationSearchTitle')}</CardTitle>
+              </div>
+              <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-5 w-5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p>{getTranslation(locale, 'tooltipSimulationSearchContent')}</p>
+                  </TooltipContent>
+                </Tooltip>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Input
+                placeholder={getTranslation(locale, 'simulationSearchPlaceholder')}
+              />
+              {/* 검색 결과가 여기에 표시됩니다. */}
+            </CardContent>
+          </Card>
+
           <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-2">
               <p className="text-xs text-muted-foreground">
                   {clientHasMounted && lastRefreshed
@@ -250,209 +273,155 @@ function ResultContent() {
               </Button>
           </div>
 
-          <Card className="mb-6 shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="font-headline text-xl flex items-center">
-                {getTranslation(locale, 'resultPageStrategyTitle')}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="ml-1.5 h-4 w-4 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs sm:max-w-sm md:max-w-md">
-                    <p className="mb-1"><strong>{getTranslation(locale, 'tooltipCalcStrategyContentLine1')}</strong></p>
-                    <p className="mb-1"><strong>{getTranslation(locale, 'tooltipCalcStrategyContentLine2')}</strong></p>
-                    <p className="mb-1"><strong>{getTranslation(locale, 'tooltipCalcStrategyContentLine3')}</strong></p>
-                    <p><strong>{getTranslation(locale, 'tooltipCalcStrategyContentLine4')}</strong></p>
-                  </TooltipContent>
-                </Tooltip>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RadioGroup
-                value={calculationStrategy || "none"}
-                onValueChange={(value) => {
-                    setCalculationStrategy(value as CalculationStrategy);
-                }}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2"
-              >
-                <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-md hover:bg-muted transition-colors flex-1">
-                  <RadioGroupItem value="b30_focus" id="r-b30-focus" />
-                  <Label htmlFor="r-b30-focus" className="flex items-center cursor-pointer w-full text-xs sm:text-sm">
-                    <Focus className="w-4 h-4 mr-1 sm:mr-2 text-sky-600" /> {getTranslation(locale, 'resultPageStrategyB30Focus')}
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-md hover:bg-muted transition-colors flex-1">
-                  <RadioGroupItem value="n20_focus" id="r-n20-focus" />
-                  <Label htmlFor="r-n20-focus" className="flex items-center cursor-pointer w-full text-xs sm:text-sm">
-                    <Focus className="w-4 h-4 mr-1 sm:mr-2 text-lime-600" /> {getTranslation(locale, 'resultPageStrategyN20Focus')}
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-md hover:bg-muted transition-colors flex-1">
-                  <RadioGroupItem value="hybrid_floor" id="r-hybrid-floor" />
-                  <Label htmlFor="r-hybrid-floor" className="flex items-center cursor-pointer w-full text-xs sm:text-sm">
-                    <TrendingDown className="w-4 h-4 mr-1 sm:mr-2 text-green-600" /> {getTranslation(locale, 'resultPageStrategyCombinedFloor')}
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-md hover:bg-muted transition-colors flex-1">
-                  <RadioGroupItem value="hybrid_peak" id="r-hybrid-peak" />
-                  <Label htmlFor="r-hybrid-peak" className="flex items-center cursor-pointer w-full text-xs sm:text-sm">
-                    <TrendingUp className="w-4 h-4 mr-1 sm:mr-2 text-destructive" /> {getTranslation(locale, 'resultPageStrategyCombinedPeak')}
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-md hover:bg-muted transition-colors flex-1">
-                  <RadioGroupItem value="none" id="r-none" />
-                  <Label htmlFor="r-none" className="flex items-center cursor-pointer w-full text-xs sm:text-sm">
-                    <X className="w-4 h-4 mr-1 sm:mr-2 text-muted-foreground" /> {getTranslation(locale, 'resultPageStrategyNone')}
-                  </Label>
-                </div>
-              </RadioGroup>
-            </CardContent>
-          </Card>
-
           {renderSimulationStatus()}
 
-          <Tabs defaultValue="best30" className="w-full">
-            <div className="flex items-start justify-between mb-6">
-              <TabsList className="grid w-full max-w-lg grid-cols-3 gap-1 bg-muted p-1 rounded-lg shadow-inner">
-                <TabsTrigger value="best30" className="px-2 py-2 text-xs whitespace-nowrap sm:px-3 sm:py-1.5 sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">{getTranslation(locale, 'resultPageTabBest30')}</TabsTrigger>
-                <TabsTrigger value="new20" className="px-2 py-2 text-xs whitespace-nowrap sm:px-3 sm:py-1.5 sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">{getTranslation(locale, 'resultPageTabNew20')}</TabsTrigger>
-                <TabsTrigger value="combined" className="px-2 py-2 text-xs whitespace-nowrap sm:px-3 sm:py-1.5 sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">{getTranslation(locale, 'resultPageTabCombined')}</TabsTrigger>
-              </TabsList>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <HelpCircle className="ml-2 h-5 w-5 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{getTranslation(locale, 'tooltipResultTabsContent')}</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
+          <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Focus className="w-6 h-6 mr-3 text-primary" />
+                      {getTranslation(locale, 'simulationTargetSongsTitle')}
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-center text-muted-foreground py-8">
+                      <p>{getTranslation(locale, 'simulationTargetSongsPlaceholder')}</p>
+                    </div>
+                </CardContent>
+            </Card>
 
-            {/* Main content display logic */}
-            {(isLoadingSongs && (currentPhase === 'idle' || currentPhase === 'simulating' || (calculationStrategy === 'none' && currentPhase !== 'error_data_fetch'))) && !(errorLoadingSongs && (currentPhase === 'error_data_fetch' || currentPhase === 'error_simulation_logic')) ? (
-              <div className="flex flex-col items-center justify-center h-64 text-center">
-                <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-                <p className="text-xl text-muted-foreground">{getTranslation(locale, 'resultPageLoadingSongsTitle')}</p>
-                <p className="text-sm text-muted-foreground">
-                  { clientHasMounted && userNameForApi && userNameForApi !== getTranslation(locale, 'resultPageDefaultPlayerName')
-                    ? ( (localStorage.getItem(`${LOCAL_STORAGE_PREFIX}profile_${userNameForApi}`) || localStorage.getItem(`${LOCAL_STORAGE_PREFIX}rating_data_${userNameForApi}`)) 
-                      ? getTranslation(locale, 'resultPageLoadingCacheCheck')
-                      : getTranslation(locale, 'resultPageLoadingApiFetch'))
-                    : getTranslation(locale, 'resultPageLoadingDataStateCheck')
-                  }
-                </p>
+            <Tabs defaultValue="best30" className="w-full">
+               <div className="flex items-start justify-between mb-2">
+                <TabsList className="grid w-full max-w-lg grid-cols-3 gap-1 bg-muted p-1 rounded-lg shadow-inner">
+                  <TabsTrigger value="best30" className="px-2 py-2 text-xs whitespace-nowrap sm:px-3 sm:py-1.5 sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">{getTranslation(locale, 'resultPageTabBest30')}</TabsTrigger>
+                  <TabsTrigger value="new20" className="px-2 py-2 text-xs whitespace-nowrap sm:px-3 sm:py-1.5 sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">{getTranslation(locale, 'resultPageTabNew20')}</TabsTrigger>
+                  <TabsTrigger value="combined" className="px-2 py-2 text-xs whitespace-nowrap sm:px-3 sm:py-1.5 sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">{getTranslation(locale, 'resultPageTabCombined')}</TabsTrigger>
+                </TabsList>
+                 <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-5 w-5 text-muted-foreground cursor-help ml-4" />
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="max-w-xs sm:max-w-sm">
+                    <p>{getTranslation(locale, 'tooltipResultTabsContent')}</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
-            ) : errorLoadingSongs && (currentPhase === 'error_data_fetch' || currentPhase === 'error_simulation_logic') ? (
-               <Card className="border-destructive/50 shadow-lg">
-                  <CardHeader className="flex flex-row items-center space-x-2">
-                      <AlertTriangle className="w-6 h-6 text-destructive" />
-                      <CardTitle className="font-headline text-xl text-destructive">{getTranslation(locale, 'resultPageErrorLoadingTitle')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                      <p>{errorLoadingSongs}</p>
-                      <p className="text-sm text-muted-foreground mt-2">{getTranslation(locale, 'resultPageErrorLoadingDesc')}</p>
-                  </CardContent>
-              </Card>
-            ) : (!isLoadingSongs && best30SongsData.length === 0 && new20SongsData.length === 0 && calculationStrategy !== "none" && (currentPhase === 'idle' || currentPhase === 'target_unreachable_info') && !errorLoadingSongs) ? (
-               <Card className="border-orange-500/50 shadow-lg">
-                  <CardHeader className="flex flex-row items-center space-x-2">
-                      <Info className="w-6 h-6 text-orange-500" />
-                      <CardTitle className="font-headline text-xl text-orange-600">{getTranslation(locale, 'resultPageNoBest30Data')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                      <p>{getTranslation(locale, 'resultPageErrorLoadingDesc')}</p>
-                       <p className="text-sm mt-1">API 응답에 유효한 Best 30 또는 New 20 곡 데이터가 없습니다. Chunirec 데이터를 확인하거나 새로고침 해보세요.</p>
-                  </CardContent>
-              </Card>
-            ) : (
-              <>
-                <TabsContent value="best30">
-                  <Card className="shadow-md">
-                    <CardHeader>
-                      <CardTitle className="font-headline text-2xl">{getTranslation(locale, 'resultPageCardTitleBest30')}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {best30SongsData.length > 0 ? (
-                        <div className={cn("grid grid-cols-1 gap-4", best30GridCols)}>
-                          {best30SongsData.map((song, index) => {
-                            const songKey = `${song.id}_${song.diff}`;
-                            return (
-                              <SongCard
-                                key={`best30-${songKey}-${index}`}
-                                song={song}
-                                calculationStrategy={calculationStrategy}
-                                isExcluded={excludedSongKeys.has(songKey)}
-                                onExcludeToggle={() => toggleExcludeSongKey(songKey)}
-                              />
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground">{getTranslation(locale, 'resultPageNoBest30Data')}</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
 
-                <TabsContent value="new20">
-                  <Card className="shadow-md">
-                    <CardHeader>
-                      <CardTitle className="font-headline text-2xl">{getTranslation(locale, 'resultPageCardTitleNew20')}</CardTitle>
+              {/* Main content display logic */}
+              {(isLoadingSongs && currentPhase !== 'error_data_fetch') ? (
+                <div className="flex flex-col items-center justify-center h-64 text-center">
+                  <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+                  <p className="text-xl text-muted-foreground">{getTranslation(locale, 'resultPageLoadingSongsTitle')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    { clientHasMounted && userNameForApi && userNameForApi !== getTranslation(locale, 'resultPageDefaultPlayerName')
+                      ? ( (localStorage.getItem(`${LOCAL_STORAGE_PREFIX}profile_${userNameForApi}`) || localStorage.getItem(`${LOCAL_STORAGE_PREFIX}rating_data_${userNameForApi}`))
+                        ? getTranslation(locale, 'resultPageLoadingCacheCheck')
+                        : getTranslation(locale, 'resultPageLoadingApiFetch'))
+                      : getTranslation(locale, 'resultPageLoadingDataStateCheck')
+                    }
+                  </p>
+                </div>
+              ) : errorLoadingSongs ? (
+                 <Card className="border-destructive/50 shadow-lg">
+                    <CardHeader className="flex flex-row items-center space-x-2">
+                        <AlertTriangle className="w-6 h-6 text-destructive" />
+                        <CardTitle className="font-headline text-xl text-destructive">{getTranslation(locale, 'resultPageErrorLoadingTitle')}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                         {new20SongsData.length > 0 ? (
-                           <div className={cn("grid grid-cols-1 gap-4", best30GridCols )}>
-                             {new20SongsData.map((song, index) => {
-                               const songKey = `${song.id}_${song.diff}`;
-                               return (
-                                 <SongCard
-                                   key={`new20-${songKey}-${index}`}
-                                   song={song}
-                                   calculationStrategy={calculationStrategy}
-                                   isExcluded={excludedSongKeys.has(songKey)}
-                                   onExcludeToggle={() => toggleExcludeSongKey(songKey)}
-                                 />
-                               );
-                             })}
-                           </div>
-                         ) : (
-                           <p className="text-muted-foreground">{getTranslation(locale, 'resultPageNoNew20Data')}</p>
-                         )}
+                        <p>{errorLoadingSongs}</p>
+                        <p className="text-sm text-muted-foreground mt-2">{getTranslation(locale, 'resultPageErrorLoadingDesc')}</p>
                     </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="combined">
-                  <Card className="shadow-md">
-                    <CardHeader>
-                      <CardTitle className="font-headline text-2xl">{getTranslation(locale, 'resultPageCardTitleCombined')}</CardTitle>
+                </Card>
+              ) : (!isLoadingSongs && best30SongsData.length === 0 && new20SongsData.length === 0) ? (
+                 <Card className="border-orange-500/50 shadow-lg">
+                    <CardHeader className="flex flex-row items-center space-x-2">
+                        <Info className="w-6 h-6 text-orange-500" />
+                        <CardTitle className="font-headline text-xl text-orange-600">{getTranslation(locale, 'resultPageNoBest30Data')}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      {combinedTopSongs.length > 0 ? (
-                        <div className={cn("grid grid-cols-1 gap-4", best30GridCols)}>
-                          {combinedTopSongs.map((song, index) => {
-                             const songKey = `${song.id}_${song.diff}`;
-                             return (
-                               <SongCard
-                                 key={`combined-${songKey}-${index}`}
-                                 song={song}
-                                 calculationStrategy={calculationStrategy}
-                                 isExcluded={excludedSongKeys.has(songKey)}
-                                 onExcludeToggle={() => toggleExcludeSongKey(songKey)}
-                               />
-                             );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground">{getTranslation(locale, 'resultPageNoCombinedData')}</p>
-                      )}
+                        <p>{getTranslation(locale, 'resultPageErrorLoadingDesc')}</p>
+                         <p className="text-sm mt-1">API 응답에 유효한 Best 30 또는 New 20 곡 데이터가 없습니다. Chunirec 데이터를 확인하거나 새로고침 해보세요.</p>
                     </CardContent>
-                  </Card>
-                </TabsContent>
-              </>
-            )
-          }
-          </Tabs>
+                </Card>
+              ) : (
+                <>
+                  <TabsContent value="best30">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline text-2xl">{getTranslation(locale, 'resultPageCardTitleBest30')}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {best30SongsData.length > 0 ? (
+                                <div className={`grid gap-4 ${best30GridCols}`}>
+                                    {best30SongsData.map((song) => (
+                                        <SongCard
+                                            key={song.uniqueId}
+                                            song={song}
+                                            onToggleExclude={() => toggleExcludeSongKey(song.uniqueId)}
+                                            isExcluded={excludedSongKeys.includes(song.uniqueId)}
+                                            locale={locale}
+                                        />
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-muted-foreground">{getTranslation(locale, 'resultPageNoBest30Data')}</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                  </TabsContent>
+                  <TabsContent value="new20">
+                      <Card>
+                          <CardHeader>
+                              <CardTitle className="font-headline text-2xl">{getTranslation(locale, 'resultPageCardTitleNew20')}</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                              {new20SongsData.length > 0 ? (
+                                  <div className={`grid gap-4 ${best30GridCols}`}>
+                                      {new20SongsData.map((song) => (
+                                           <SongCard
+                                              key={song.uniqueId}
+                                              song={song}
+                                              onToggleExclude={() => toggleExcludeSongKey(song.uniqueId)}
+                                              isExcluded={excludedSongKeys.includes(song.uniqueId)}
+                                              locale={locale}
+                                          />
+                                      ))}
+                                  </div>
+                              ) : (
+                                  <p className="text-muted-foreground">{getTranslation(locale, 'resultPageNoNew20Data')}</p>
+                              )}
+                          </CardContent>
+                      </Card>
+                  </TabsContent>
+                  <TabsContent value="combined">
+                      <Card>
+                          <CardHeader>
+                              <CardTitle className="font-headline text-2xl">{getTranslation(locale, 'resultPageCardTitleCombined')}</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                              {combinedTopSongs.length > 0 ? (
+                                  <div className={`grid gap-4 ${best30GridCols}`}>
+                                      {combinedTopSongs.map((song) => (
+                                           <SongCard
+                                              key={song.uniqueId}
+                                              song={song}
+                                              onToggleExclude={() => toggleExcludeSongKey(song.uniqueId)}
+                                              isExcluded={excludedSongKeys.includes(song.uniqueId)}
+                                              locale={locale}
+                                              isCombinedView={true}
+                                          />
+                                      ))}
+                                  </div>
+                              ) : (
+                                  <p className="text-muted-foreground">{getTranslation(locale, 'resultPageNoCombinedData')}</p>
+                              )}
+                          </CardContent>
+                      </Card>
+                  </TabsContent>
+                </>
+              )}
+            </Tabs>
+          </div>
         </div>
       </TooltipProvider>
     </main>

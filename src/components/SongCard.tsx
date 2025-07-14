@@ -16,21 +16,20 @@ const difficultyColors: { [key: string]: string } = {
 
 type SongCardProps = {
   song: Song;
-  calculationStrategy: CalculationStrategy | null;
   isExcluded: boolean;
-  onExcludeToggle: () => void;
+  onToggleExclude: () => void;
+  isCombinedView?: boolean;
+  locale: "KR" | "JP";
 };
 
-function SongCard({ song, calculationStrategy, isExcluded, onExcludeToggle }: SongCardProps) {
-  const inSimulationMode = !!calculationStrategy && calculationStrategy !== "none";
-
+function SongCard({ song, isExcluded, onToggleExclude, isCombinedView, locale }: SongCardProps) {
   const scoreDifference = song.targetScore - song.currentScore;
   const ratingDifferenceValue = song.targetRating - song.currentRating;
   
   const ratingActuallyChanged = Math.abs(ratingDifferenceValue) > 0.00005; 
   const scoreActuallyChanged = song.targetScore !== song.currentScore;
 
-  const isSimulatedAndChanged = inSimulationMode && (scoreActuallyChanged || ratingActuallyChanged) && !isExcluded;
+  const isSimulatedAndChanged = (scoreActuallyChanged || ratingActuallyChanged) && !isExcluded;
 
   const getDifficultyColorClass = (diff: string) => {
     const upperDiff = diff.toUpperCase();
@@ -39,14 +38,12 @@ function SongCard({ song, calculationStrategy, isExcluded, onExcludeToggle }: So
 
   let borderColorClass = "border-border"; 
   if (song.currentScore >= 1009000) borderColorClass = "border-red-500"; 
-  else if (inSimulationMode && song.targetScore >= 1009000 && !isExcluded) borderColorClass = "border-purple-400"; 
+  else if (isSimulatedAndChanged) borderColorClass = "border-purple-400"; 
   else if (isExcluded) borderColorClass = "border-gray-500";
   else borderColorClass = "border-green-500"; 
   
   const handleCardClick = () => {
-    if (song.currentScore <= MAX_SCORE_FOR_EXCLUDE_TOGGLE && calculationStrategy !== "none") {
-        onExcludeToggle();
-    }
+    onToggleExclude();
   };
 
   return (
@@ -54,7 +51,7 @@ function SongCard({ song, calculationStrategy, isExcluded, onExcludeToggle }: So
       className={cn(
         "overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 w-full border-2 relative",
         borderColorClass,
-        (song.currentScore <= MAX_SCORE_FOR_EXCLUDE_TOGGLE && calculationStrategy !== "none") ? "cursor-pointer" : "cursor-default"
+        "cursor-pointer"
       )}
       onClick={handleCardClick}
     >
@@ -74,7 +71,7 @@ function SongCard({ song, calculationStrategy, isExcluded, onExcludeToggle }: So
                   {song.diff.toUpperCase()}
               </span>
               {isExcluded && (
-                  <XCircle className="w-3 h-3 ml-1 text-red-500 inline-block" title="Excluded from calculation"/>
+                  <XCircle className="w-3 h-3 ml-1 text-red-500 inline-block"/>
               )}
           </div>
         </div>

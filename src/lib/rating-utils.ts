@@ -70,7 +70,7 @@ export const mapApiSongToAppSong = (
       effectiveChartConstant = apiSong.const;
     }
     else if (apiSong.const === 0) { // Treat 0.0 const as "use level if integer or x.5"
-      if ((typeof apiSong.level === 'string' || typeof apiSong.level === 'number') && String(apiSong.level).trim() !== "") {
+      if ('level' in apiSong && (typeof apiSong.level === 'string' || typeof apiSong.level === 'number') && String(apiSong.level).trim() !== "") {
         const parsedLevel = parseFloat(String(apiSong.level));
         if (!isNaN(parsedLevel) && parsedLevel > 0) {
           const isInteger = parsedLevel % 1 === 0;
@@ -83,8 +83,8 @@ export const mapApiSongToAppSong = (
       }
     }
     // Fallback for is_const_unknown: use level if available and numeric
-    else if (effectiveChartConstant === null && (apiSong as ShowallApiSongEntry).is_const_unknown &&
-             (typeof apiSong.level === 'string' || typeof apiSong.level === 'number') &&
+    else if (effectiveChartConstant === null && 'is_const_unknown' in apiSong && (apiSong as ShowallApiSongEntry).is_const_unknown &&
+             'level' in apiSong && (typeof apiSong.level === 'string' || typeof apiSong.level === 'number') &&
              String(apiSong.level).trim() !== "") {
       const parsedLevel = parseFloat(String(apiSong.level));
       if (!isNaN(parsedLevel) && parsedLevel > 0) {
@@ -109,6 +109,7 @@ export const mapApiSongToAppSong = (
   const targetRating = currentRating;
 
   const baseSong: Song = {
+    uniqueId: `${apiSong.id}_${apiSong.diff}`,
     id: apiSong.id,
     diff: apiSong.diff,
     title: apiSong.title,
@@ -118,7 +119,7 @@ export const mapApiSongToAppSong = (
     targetScore: targetScore,
     targetRating: targetRating,
     genre: apiSong.genre,
-    level: apiSong.level,
+    level: 'level' in apiSong ? apiSong.level : undefined,
   };
 
   // Optional fields from ShowallApiSongEntry
@@ -240,12 +241,12 @@ export function calculateTheoreticalMaxRatingsForList(
   candidatePool: (Song | ShowallApiSongEntry)[],
   listLimit: number,
   scoreToAssume: number,
-  excludedSongKeys?: Set<string> // Optional set of excluded song keys `${id}_${diff}`
+  excludedSongKeys?: string[] // Optional set of excluded song keys `${id}_${diff}`
 ): { list: Song[]; average: number | null; sum: number } {
   const maxedSongs: Song[] = candidatePool
     .map(s_item => {
       const songKey = `${s_item.id}_${s_item.diff.toUpperCase()}`;
-      const isExcluded = excludedSongKeys ? excludedSongKeys.has(songKey) : false;
+      const isExcluded = excludedSongKeys ? excludedSongKeys.includes(songKey) : false;
 
       const songToConsider = ('currentScore' in s_item)
         ? { ...s_item } as Song // Already a Song object

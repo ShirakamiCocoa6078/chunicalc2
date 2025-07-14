@@ -45,6 +45,7 @@ export type CalculationStrategy =
   | null;
 
 export type Song = {
+  uniqueId: string;
   id: string;
   diff: string;
   title: string;
@@ -111,7 +112,7 @@ export interface SimulationInput {
   simulationMode: "b30_only" | "n20_only" | "hybrid";
   isScoreLimitReleased: boolean;
   phaseTransitionPoint: number | null;
-  excludedSongKeys: Set<string>;
+  excludedSongKeys: string[];
 }
 
 export interface SimulationOutput {
@@ -133,5 +134,5 @@ export type TheoreticalMaxInfo = {
 export type ConstOverride = {
   title: string;
   diff: string;
-  const: number;
+  const: number | string;
 };

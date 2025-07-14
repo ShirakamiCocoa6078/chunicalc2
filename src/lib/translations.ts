@@ -170,6 +170,11 @@ export const translations = {
     tooltipCalcStrategyContentLine4: "<strong>전체(고점우선):</strong> 모든 곡을 대상으로, 현재 레이팅이 높은 곡을 더 성장시키는 효율적인 경로를 계산합니다.",
     tooltipResultTabsContent: "시뮬레이션 결과 목록에서 점수를 올리기 어렵거나 원치 않는 곡을 클릭하여 계산에서 제외할 수 있습니다.",
     tooltipLocalApiKeyContent: "https://developer.chunirec.net/manage/ 에서 발급받은 Chunirec API 액세스 토큰을 사용할 수 있습니다. 공식 API 오류 발생 시 대체 수단으로 활용 가능합니다.",
+    simulationSearchTitle: "시뮬레이션 대상 악곡 검색",
+    tooltipSimulationSearchContent: "검색창을 통해 시뮬레이션에 추가할 곡을 찾을 수 있습니다.",
+    simulationSearchPlaceholder: "곡 제목 또는 아티스트로 검색...",
+    simulationTargetSongsTitle: "시뮬레이션 대상 악곡",
+    simulationTargetSongsPlaceholder: "검색을 통해 시뮬레이션에 포함할 곡을 추가하세요.",
   },
   JP: {
     homePageTitle: "ChuniCalc 2",
@@ -341,6 +346,11 @@ export const translations = {
     tooltipCalcStrategyContentLine4: "全体(高点優先): 全ての曲を対象に、現在レーティングが高い曲をさらに成長させる効率的な経路を計算します。",
     tooltipResultTabsContent: "シミュレーション結果リストで、スコアアップが難しい、または望まない曲をクリックして計算から除外できます。",
     tooltipLocalApiKeyContent: "https://developer.chunirec.net/manage/ で発行されたChunirec APIアクセストークンを使用できます。公式APIエラー発生時の代替手段として活用可能です。",
+    simulationSearchTitle: "シミュレーション対象楽曲検索",
+    tooltipSimulationSearchContent: "検索ボックスでシミュレーションに追加する曲を検索できます。",
+    simulationSearchPlaceholder: "曲名またはアーティストで検索...",
+    simulationTargetSongsTitle: "シミュレーション対象楽曲",
+    simulationTargetSongsPlaceholder: "検索してシミュレーションに含める曲を追加してください。",
   },
 };
 
