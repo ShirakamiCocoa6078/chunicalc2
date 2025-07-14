@@ -116,6 +116,25 @@ export interface SimulationInput {
   customSongs?: Song[];
 }
 
+export type WorkerInitializationData = {
+  type: 'INIT';
+  payload: Omit<SimulationInput, 'targetRating' | 'simulationMode' | 'algorithmPreference' | 'customSongs'>;
+};
+
+export type WorkerSimulationRequestData = {
+  type: 'SIMULATE';
+  payload: {
+    targetRating: number;
+    simulationMode: SimulationInput['simulationMode'];
+    algorithmPreference: SimulationInput['algorithmPreference'];
+    customSongs?: Song[];
+    excludedSongKeys: string[];
+  };
+};
+
+export type WorkerInput = WorkerInitializationData | WorkerSimulationRequestData;
+
+
 export interface SimulationOutput {
   simulatedB30Songs: Song[];
   simulatedNew20Songs: Song[];

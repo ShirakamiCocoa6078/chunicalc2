@@ -20,6 +20,8 @@ import type {
   SimulationInput,
   SimulationOutput,
   ConstOverride,
+  WorkerInitializationData,
+  WorkerSimulationRequestData,
 } from "@/types/result-page";
 import { useProfileData, useUserRatingData, useUserShowallData, useGlobalMusicData } from './useApiData'; // SWR hooks
 
@@ -284,6 +286,28 @@ export function useChuniResultData({
           timestamp: Date.now(),
         },
       });
+
+      // Worker 초기화
+      if (simulationWorkerRef.current) {
+        const newSongsDataTyped: { verse: string[]; xverse: string[]; } = NewSongsData.titles;
+        const newSongsTitles = [...newSongsDataTyped.verse, ...newSongsDataTyped.xverse];
+        const constOverridesTyped: ConstOverride[] = constOverridesInternal;
+
+        const initPayload: WorkerInitializationData['payload'] = {
+          originalB30Songs: b30Songs,
+          originalNew20Songs: n20Songs,
+          allPlayedNewSongsPool: allPlayedPool,
+          allMusicData: tempFlattenedGlobalMusicRecords,
+          userPlayHistory: userRecords,
+          newSongsDataTitlesVerse: newSongsTitles,
+          constOverrides: constOverridesTyped,
+          currentRating: 0, // 임시값, 시뮬레이션 시 실제 값으로 대체됨
+          isScoreLimitReleased: getIsScoreLimitReleased(),
+          phaseTransitionPoint: 17.00,
+          excludedSongKeys: [], // 초기에는 제외 목록이 비어있음
+        };
+        simulationWorkerRef.current.postMessage({ type: 'INIT', payload: initPayload });
+      }
     }
   }, [
     profileData, ratingData, globalMusicRaw, userShowallData,
@@ -306,7 +330,7 @@ export function useChuniResultData({
     const parsedCurrentRating = parseFloat(currentRatingDisplay || '0');
     const parsedTargetRating = parseFloat(targetRatingDisplay || '0');
     
-    if (isNaN(parsedTargetRating) || parsedTargetRating <= 0 || isNaN(parsedCurrentRating)) {
+    if (isNaN(parsedTargetRating) || parsedTargetRating <= 0 || isNaN(parsedCurrentRating) || !simulationWorkerRef.current) {
         return;
     }
 
@@ -319,33 +343,22 @@ export function useChuniResultData({
                            : "hybrid";
 
     const algorithmPreference = calculationStrategy === "hybrid_peak" ? "peak" : "floor";
-    const newSongsDataTyped: { verse: string[]; xverse: string[]; } = NewSongsData.titles;
-    const newSongsTitles = [...newSongsDataTyped.verse, ...newSongsDataTyped.xverse];
-    const constOverridesTyped: ConstOverride[] = constOverridesInternal;
 
     dispatch({ type: 'START_SIMULATION', payload: { locale } });
-    const simulationInput: SimulationInput = {
-      originalB30Songs: state.originalB30SongsData,
-      originalNew20Songs: state.originalNew20SongsData,
-      allPlayedNewSongsPool: state.allPlayedNewSongsPool,
-      allMusicData: state.allMusicData,
-      userPlayHistory: state.userPlayHistory,
-      newSongsDataTitlesVerse: newSongsTitles,
-      constOverrides: constOverridesTyped,
-      currentRating: parsedCurrentRating,
+
+    const simulatePayload: WorkerSimulationRequestData['payload'] = {
       targetRating: parsedTargetRating,
-      algorithmPreference: algorithmPreference,
       simulationMode: simulationMode,
-      isScoreLimitReleased: getIsScoreLimitReleased(),
-      phaseTransitionPoint: 17.00,
-      excludedSongKeys: state.excludedSongKeys,
+      algorithmPreference: algorithmPreference,
       customSongs: isCustomMode ? simulationTargetSongs : undefined,
+      excludedSongKeys: state.excludedSongKeys,
     };
-    simulationWorkerRef.current?.postMessage(simulationInput);
-  }, [calculationStrategy, simulationTargetSongs, targetRatingDisplay, currentRatingDisplay, clientHasMounted, isLoadingInitialApiData, state.originalB30SongsData, state.originalNew20SongsData, state.allPlayedNewSongsPool, state.allMusicData, state.userPlayHistory, state.excludedSongKeys, locale, dispatch, state.currentPhase]);
+    
+    simulationWorkerRef.current.postMessage({ type: 'SIMULATE', payload: simulatePayload });
+  }, [calculationStrategy, simulationTargetSongs, targetRatingDisplay, currentRatingDisplay, clientHasMounted, isLoadingInitialApiData, state.excludedSongKeys, locale, dispatch]);
 
   useEffect(() => {
-    if (!clientHasMounted || isLoadingInitialApiData || !userNameForApi || !state.originalB30SongsData || (calculationStrategy === 'none' && simulationTargetSongs.length === 0)) {
+    if (!clientHasMounted || isLoadingInitialApiData || !userNameForApi || (calculationStrategy === 'none' && simulationTargetSongs.length === 0)) {
       return;
     }
     
