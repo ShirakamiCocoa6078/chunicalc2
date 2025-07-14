@@ -71,6 +71,7 @@ type ResultDataAction =
   | { type: 'SIMULATION_ERROR'; payload: string }
   | { type: 'TOGGLE_EXCLUDE_SONG'; payload: string }
   | { type: 'RESET_SIMULATION_STATE_FOR_NEW_STRATEGY' }
+  | { type: 'CLEAR_CUSTOM_SIMULATION_RESULT' }
   | { type: 'SET_PRECOMPUTATION_RESULT'; payload: ResultDataState['preComputationResult'] }
   | { type: 'SET_CURRENT_PHASE'; payload: SimulationPhase };
 
@@ -168,6 +169,14 @@ function resultDataReducer(state: ResultDataState, action: ResultDataAction): Re
         preComputationResult: null,
         simulationLog: [],
         customSimulationResult: null,
+      };
+    case 'CLEAR_CUSTOM_SIMULATION_RESULT':
+      return {
+        ...state,
+        customSimulationResult: null,
+        currentPhase: 'idle',
+        simulationLog: [],
+        simulationError: null,
       };
     case 'SET_PRECOMPUTATION_RESULT':
         return { ...state, preComputationResult: action.payload, isLoadingSimulation: false };
@@ -347,6 +356,14 @@ export function useChuniResultData({
       dispatch({ type: 'RESET_SIMULATION_STATE_FOR_NEW_STRATEGY' });
     }
   }, [simulationTargetSongs, state.currentPhase, dispatch]);
+
+  useEffect(() => {
+    // 시뮬레이션 대상 곡 목록이 변경되면, 이전의 커스텀 시뮬레이션 결과는 무효화되어야 합니다.
+    if (state.customSimulationResult) {
+      dispatch({ type: 'CLEAR_CUSTOM_SIMULATION_RESULT' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [simulationTargetSongs]);
   
   // B30/N20/하이브리드 자동 시뮬레이션
   useEffect(() => {
