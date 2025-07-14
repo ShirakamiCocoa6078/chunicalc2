@@ -1,7 +1,7 @@
 
 "use client";
 
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -90,6 +90,8 @@ function ResultContent() {
     customSimulationResult,
     originalB30SongsData,
     originalNew20SongsData,
+    runCustomSimulation,
+    newSongsVerseTitles,
   } = useChuniResultData({
     userNameForApi,
     currentRatingDisplay,
@@ -128,6 +130,24 @@ function ResultContent() {
   const removeSongFromSimulation = (uniqueId: string) => {
     setSimulationTargetSongs(prev => prev.filter(s => s.uniqueId !== uniqueId));
   };
+
+  const { b30TargetCandidates, n20TargetCandidates } = useMemo(() => {
+    const b30: Song[] = [];
+    const n20: Song[] = [];
+    if (!newSongsVerseTitles) return { b30TargetCandidates: [], n20TargetCandidates: [] };
+
+    // 시뮬레이션 결과가 있으면 그것을 사용하고, 없으면 원래 목록을 사용합니다.
+    const sourceSongs = customSimulationResult ? customSimulationResult.simulatedB30Songs : simulationTargetSongs;
+
+    for (const song of sourceSongs) {
+      if (newSongsVerseTitles.includes(song.title)) {
+        n20.push(song);
+      } else {
+        b30.push(song);
+      }
+    }
+    return { b30TargetCandidates: b30, n20TargetCandidates: n20 };
+  }, [simulationTargetSongs, newSongsVerseTitles, customSimulationResult]);
 
 
   const handleRefreshData = useCallback(() => {
@@ -176,6 +196,9 @@ function ResultContent() {
     } else if (isLoadingSongs && (currentPhase === 'idle' || currentPhase === 'simulating' || currentPhase !== 'error_data_fetch')) {
       statusText = getTranslation(locale, 'resultPageLoadingSongsTitle');
       IconComponent = Loader2; iconShouldSpin = true;
+    } else if (customSimulationResult && customSimulationResult.finalPhase === 'target_unreachable_custom' && customSimulationResult.unreachableRatingGap) {
+        statusText = getTranslation(locale, 'unreachableRatingCustomMessage').replace('{0}', customSimulationResult.unreachableRatingGap.toFixed(4));
+        bgColor = "bg-orange-100 dark:bg-orange-900"; textColor = "text-orange-700 dark:text-orange-300"; IconComponent = XCircle;
     } else if (preComputationResult && currentPhase === 'target_unreachable_info' && preComputationResult.messageKey) {
         statusText = getTranslation(locale, preComputationResult.messageKey as any, preComputationResult.reachableRating.toFixed(4));
         bgColor = "bg-orange-100 dark:bg-orange-900"; textColor = "text-orange-700 dark:text-orange-300"; IconComponent = XCircle;
@@ -343,35 +366,64 @@ function ResultContent() {
 
           {renderSimulationStatus()}
 
-          <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Focus className="w-6 h-6 mr-3 text-primary" />
-                      {getTranslation(locale, 'simulationTargetSongsTitle')}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {simulationTargetSongs.length > 0 ? (
-                    <div className={`grid gap-4 ${best30GridCols}`}>
-                      {(customSimulationResult ? customSimulationResult.simulatedB30Songs : simulationTargetSongs).map(song => (
+          <Card className="mb-6">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div className="flex items-center">
+                <Focus className="w-6 h-6 mr-3 text-primary" />
+                <CardTitle>{getTranslation(locale, 'simulationTargetSongsTitle')}</CardTitle>
+              </div>
+               <Button onClick={runCustomSimulation} disabled={isLoadingSongs || simulationTargetSongs.length === 0}>
+                  <Rocket className="w-4 h-4 mr-2" />
+                  {getTranslation(locale, 'startSimulationButton')}
+                </Button>
+            </CardHeader>
+            <CardContent>
+              {simulationTargetSongs.length > 0 ? (
+                <div className="grid md:grid-cols-2 gap-x-6">
+                  {/* B30 대상 풀 */}
+                  <div className="space-y-2">
+                    <h3 className="text-center font-semibold mb-2 border-b pb-2">{getTranslation(locale, 'b30TargetPoolTitle')}</h3>
+                    {b30TargetCandidates.length > 0 ? (
+                      b30TargetCandidates.map(song => (
                         <SongCard
                           key={song.uniqueId}
                           song={song}
-                          isExcluded={false} // 시뮬레이션 대상 목록에서는 '제외' 상태를 사용하지 않음
+                          isExcluded={false}
                           onToggleExclude={() => removeSongFromSimulation(song.uniqueId)}
                           locale={locale}
                         />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center text-muted-foreground py-8">
-                      <p>{getTranslation(locale, 'simulationTargetSongsPlaceholder')}</p>
-                    </div>
-                  )}
-                </CardContent>
-            </Card>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">{getTranslation(locale, 'noB30TargetPool')}</p>
+                    )}
+                  </div>
+                  {/* N20 대상 풀 */}
+                  <div className="md:border-l md:pl-6 space-y-2">
+                     <h3 className="text-center font-semibold mb-2 border-b pb-2">{getTranslation(locale, 'n20TargetPoolTitle')}</h3>
+                     {n20TargetCandidates.length > 0 ? (
+                      n20TargetCandidates.map(song => (
+                        <SongCard
+                          key={song.uniqueId}
+                          song={song}
+                          isExcluded={false}
+                          onToggleExclude={() => removeSongFromSimulation(song.uniqueId)}
+                          locale={locale}
+                        />
+                      ))
+                     ) : (
+                       <p className="text-sm text-muted-foreground text-center py-4">{getTranslation(locale, 'noN20TargetPool')}</p>
+                     )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground py-8">
+                  <p>{getTranslation(locale, 'simulationTargetSongsPlaceholder')}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
+          <div className="space-y-6">
             <Tabs defaultValue="best30" className="w-full">
                <div className="flex items-start justify-between mb-2">
               <TabsList className="grid w-full max-w-lg grid-cols-3 gap-1 bg-muted p-1 rounded-lg shadow-inner">

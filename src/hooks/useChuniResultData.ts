@@ -228,6 +228,8 @@ export function useChuniResultData({
 
   const defaultPlayerName = getTranslation(locale, 'resultPageDefaultPlayerName');
 
+  const newSongsVerseTitles = useMemo(() => NewSongsData.titles.verse, []);
+
   const { data: profileData, error: profileError, isLoading: isLoadingProfile, mutate: mutateProfile } = useProfileData(userNameForApi && userNameForApi !== defaultPlayerName ? userNameForApi : null);
   const { data: ratingData, error: ratingError, isLoading: isLoadingRating, mutate: mutateRating } = useUserRatingData(userNameForApi && userNameForApi !== defaultPlayerName ? userNameForApi : null);
   const { data: userShowallData, error: userShowallError, isLoading: isLoadingUserShowall, mutate: mutateUserShowall } = useUserShowallData(userNameForApi && userNameForApi !== defaultPlayerName ? userNameForApi : null);
@@ -345,9 +347,11 @@ export function useChuniResultData({
       dispatch({ type: 'RESET_SIMULATION_STATE_FOR_NEW_STRATEGY' });
     }
   }, [simulationTargetSongs, state.currentPhase, dispatch]);
-
+  
+  // B30/N20/하이브리드 자동 시뮬레이션
   useEffect(() => {
-    if ((calculationStrategy === 'none' && simulationTargetSongs.length === 0) || !clientHasMounted || isLoadingInitialApiData) {
+    // 커스텀 시뮬레이션 대상이 있거나, 계산 전략이 'none'이면 자동 실행 안 함
+    if (calculationStrategy === 'none' || simulationTargetSongs.length > 0 || !clientHasMounted || isLoadingInitialApiData) {
       return;
     }
     
@@ -358,44 +362,56 @@ export function useChuniResultData({
         return;
     }
 
-    const isCustomMode = simulationTargetSongs.length > 0;
-    
-    if (isCustomMode) {
-        // 커스텀 시뮬레이션
-        dispatch({ type: 'START_SIMULATION', payload: { locale } });
-        const simulatePayload: WorkerSimulationRequestData['payload'] = {
-          targetRating: parsedTargetRating,
-          simulationMode: "custom_target",
-          algorithmPreference: "floor", // 커스텀 모드에서는 floor 고정
-          customSongs: simulationTargetSongs,
-          excludedSongKeys: state.excludedSongKeys,
-          // 현재 B30/N20 평균 레이팅 전달
-          currentB30Avg: state.simulatedAverageB30Rating,
-          currentN20Avg: state.simulatedAverageNew20Rating,
-        };
-        latestSimulationInputRef.current = { ...initialDataRef.current, ...simulatePayload } as SimulationInput; // 추적용
-        simulationWorkerRef.current.postMessage({ type: 'SIMULATE', payload: simulatePayload });
-
-    } else {
-        // 기존 B30/N20/하이브리드 시뮬레이션
-        const simulationMode = calculationStrategy === "b30_focus" ? "b30_only"
+    const simulationMode = calculationStrategy === "b30_focus" ? "b30_only"
                                : calculationStrategy === "n20_focus" ? "n20_only"
                                : "hybrid";
-        const algorithmPreference = calculationStrategy === "hybrid_peak" ? "peak" : "floor";
+    const algorithmPreference = calculationStrategy === "hybrid_peak" ? "peak" : "floor";
 
-        dispatch({ type: 'START_SIMULATION', payload: { locale } });
+    dispatch({ type: 'START_SIMULATION', payload: { locale } });
 
-        const simulatePayload: WorkerSimulationRequestData['payload'] = {
-          targetRating: parsedTargetRating,
-          simulationMode: simulationMode,
-          algorithmPreference: algorithmPreference,
-          excludedSongKeys: state.excludedSongKeys,
-        };
-        
-        latestSimulationInputRef.current = { ...initialDataRef.current, ...simulatePayload } as SimulationInput; // 추적용
-        simulationWorkerRef.current.postMessage({ type: 'SIMULATE', payload: simulatePayload });
+    const simulatePayload: WorkerSimulationRequestData['payload'] = {
+      targetRating: parsedTargetRating,
+      simulationMode: simulationMode,
+      algorithmPreference: algorithmPreference,
+      excludedSongKeys: state.excludedSongKeys,
+    };
+    
+    latestSimulationInputRef.current = { ...initialDataRef.current, ...simulatePayload } as SimulationInput; // 추적용
+    simulationWorkerRef.current.postMessage({ type: 'SIMULATE', payload: simulatePayload });
+
+  }, [calculationStrategy, targetRatingDisplay, currentRatingDisplay, clientHasMounted, isLoadingInitialApiData, state.excludedSongKeys, locale, dispatch]);
+  
+  const runCustomSimulation = useCallback(() => {
+    if (simulationTargetSongs.length === 0 || !clientHasMounted || isLoadingInitialApiData || !simulationWorkerRef.current) {
+      return;
     }
-  }, [calculationStrategy, simulationTargetSongs, targetRatingDisplay, currentRatingDisplay, clientHasMounted, isLoadingInitialApiData, state.excludedSongKeys, locale, dispatch, state.simulatedAverageB30Rating, state.simulatedAverageNew20Rating]);
+    const parsedTargetRating = parseFloat(targetRatingDisplay || '0');
+    if (isNaN(parsedTargetRating) || parsedTargetRating <= 0) return;
+    
+    dispatch({ type: 'START_SIMULATION', payload: { locale } });
+    const simulatePayload: WorkerSimulationRequestData['payload'] = {
+      targetRating: parsedTargetRating,
+      simulationMode: "custom_target",
+      algorithmPreference: "floor",
+      customSongs: simulationTargetSongs,
+      excludedSongKeys: state.excludedSongKeys,
+      currentB30Avg: state.simulatedAverageB30Rating,
+      currentN20Avg: state.simulatedAverageNew20Rating,
+    };
+    latestSimulationInputRef.current = { ...initialDataRef.current, ...simulatePayload } as SimulationInput;
+    simulationWorkerRef.current.postMessage({ type: 'SIMULATE', payload: simulatePayload });
+  }, [
+    simulationTargetSongs,
+    clientHasMounted,
+    isLoadingInitialApiData,
+    targetRatingDisplay,
+    state.excludedSongKeys,
+    state.simulatedAverageB30Rating,
+    state.simulatedAverageNew20Rating,
+    locale,
+    dispatch
+  ]);
+
 
   useEffect(() => {
     if (!clientHasMounted || isLoadingInitialApiData || !userNameForApi || (calculationStrategy === 'none' && simulationTargetSongs.length === 0)) {
@@ -483,6 +499,8 @@ export function useChuniResultData({
     allMusicData: state.allMusicData,
     userPlayHistory: state.userPlayHistory, // 사용자 기록 노출
     customSimulationResult: state.customSimulationResult, // 커스텀 결과 노출
+    runCustomSimulation,
+    newSongsVerseTitles,
   };
 }
 

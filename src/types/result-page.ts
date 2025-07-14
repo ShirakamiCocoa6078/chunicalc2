@@ -145,9 +145,10 @@ export interface SimulationOutput {
   finalAverageB30Rating: number | null;
   finalAverageNew20Rating: number | null;
   finalOverallRating: number;
-  finalPhase: SimulationPhase;
+  finalPhase: 'simulating' | 'target_reached' | 'stuck_b30_no_improvement' | 'stuck_n20_no_improvement' | 'stuck_both_no_improvement' | 'error_simulation_logic' | 'target_unreachable_info' | 'target_unreachable_custom';
   simulationLog: string[];
   error?: string;
+  unreachableRatingGap?: number;
 }
 
 export type TheoreticalMaxInfo = {
