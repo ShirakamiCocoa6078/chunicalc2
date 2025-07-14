@@ -27,6 +27,13 @@ import { mapApiSongToAppSong } from "@/lib/rating-utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 
+const normalizeForSearch = (str: string): string => {
+  // 유니코드 속성 이스케이프를 사용하여 문자(L)와 숫자(N)를 제외한 모든 문자를 제거합니다.
+  // 'u' 플래그는 유니코드 패턴에 필수적입니다.
+  return str.replace(/[^\p{L}\p{N}]/gu, '').toLowerCase();
+};
+
+
 function ResultContent() {
   const searchParams = useSearchParams();
   const { locale } = useLanguage();
@@ -94,9 +101,9 @@ function ResultContent() {
       setSearchResults([]);
       return;
     }
-    const lowercasedQuery = searchQuery.toLowerCase();
+    const normalizedQuery = normalizeForSearch(searchQuery);
     const filtered = allMusicData.filter(song => 
-      song.title.toLowerCase().includes(lowercasedQuery)
+      normalizeForSearch(song.title).includes(normalizedQuery)
     );
     setSearchResults(filtered.slice(0, 50)); // 검색 결과 50개로 제한
   }, [searchQuery, allMusicData]);
