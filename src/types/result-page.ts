@@ -109,10 +109,11 @@ export interface SimulationInput {
   currentRating: number;
   targetRating: number;
   algorithmPreference: "floor" | "peak";
-  simulationMode: "b30_only" | "n20_only" | "hybrid";
+  simulationMode: "b30_only" | "n20_only" | "hybrid" | "custom";
   isScoreLimitReleased: boolean;
   phaseTransitionPoint: number | null;
   excludedSongKeys: string[];
+  customSongs?: Song[];
 }
 
 export interface SimulationOutput {

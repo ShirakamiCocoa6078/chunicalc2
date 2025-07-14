@@ -48,6 +48,8 @@ const calculateChunithmSongRating = (score: number, chartConstant: number | unde
   return Math.max(0, parseFloat(ratingValue.toFixed(4)));
 };
 
+// This function is defined but not used in the provided snippet.
+// It's assumed to be used by the main logic that calls this worker.
 const mapApiSongToAppSong = (apiSong: ShowallApiSongEntry, _index: number, chartConstantOverride?: number): Song => {
   const score = typeof apiSong.score === 'number' ? apiSong.score : 0;
   let effectiveChartConstant: number | null = null;
@@ -74,9 +76,10 @@ const mapApiSongToAppSong = (apiSong: ShowallApiSongEntry, _index: number, chart
   else calculatedCurrentRating = typeof apiSong.rating === 'number' ? apiSong.rating : 0;
   const currentRating = parseFloat(calculatedCurrentRating.toFixed(4));
   const baseSong: Song = {
+    uniqueId: `${apiSong.id}_${apiSong.diff}`,
     id: apiSong.id, diff: apiSong.diff, title: apiSong.title, chartConstant: effectiveChartConstant,
     currentScore: score, currentRating: currentRating, targetScore: score, targetRating: currentRating,
-    genre: apiSong.genre, level: apiSong.level,
+    genre: apiSong.genre, level: 'level' in apiSong ? apiSong.level : undefined,
   };
   if ('release' in apiSong) baseSong.release = apiSong.release;
   if ('is_played' in apiSong) baseSong.is_played = apiSong.is_played;
@@ -110,7 +113,6 @@ const getNextGradeBoundaryScore = (currentScore: number): number | null => {
     return null;
 };
 // --- End of Duplicated/Adapted functions ---
-
 
 const isSongHighConstantForFloor = (song: Song, currentOverallAverageRatingForList: number | null): boolean => {
   if (!song.chartConstant || currentOverallAverageRatingForList === null) return false;
@@ -170,6 +172,61 @@ function calculateOverallRating(avgB30: number | null, avgN20: number | null, ac
   return parseFloat(((b30Sum + n20Sum) / totalEffectiveSongs).toFixed(4));
 }
 
+function _performCustomListSimulation(
+  currentSongsInput: Song[],
+  input: SimulationInput,
+  log: string[]
+): { updatedSongs: Song[]; songsChangedCount: number; stuck: boolean } {
+  let updatedSongs = JSON.parse(JSON.stringify(currentSongsInput)) as Song[];
+  let songsChangedCount = 0;
+  let phaseIsStuck = true;
+
+  const scoreCap = input.isScoreLimitReleased ? 1010000 : MAX_SCORE_NORMAL;
+  
+  let updatableSongs = updatedSongs.filter(song => !input.excludedSongKeys.includes(song.uniqueId) && song.targetScore < scoreCap && song.chartConstant !== null && song.chartConstant > 0);
+  
+  if (input.algorithmPreference === 'floor') {
+    updatableSongs.sort((a, b) => a.targetRating - b.targetRating || a.targetScore - b.targetScore);
+  } else { // peak
+    updatableSongs.sort((a, b) => b.targetRating - a.targetRating || b.targetScore - b.targetScore);
+  }
+  
+  if (updatableSongs.length > 0) {
+    const songToImprove = updatableSongs[0];
+    const songIndex = updatedSongs.findIndex(s => s.uniqueId === songToImprove.uniqueId);
+    if (songIndex !== -1) {
+      const nextGradeScore = getNextGradeBoundaryScore(songToImprove.targetScore);
+      let improvementMade = false;
+      
+      if (nextGradeScore && nextGradeScore <= scoreCap && songToImprove.chartConstant) {
+        const potentialRating = calculateChunithmSongRating(nextGradeScore, songToImprove.chartConstant);
+        if (potentialRating > songToImprove.targetRating) {
+          updatedSongs[songIndex].targetScore = nextGradeScore;
+          updatedSongs[songIndex].targetRating = parseFloat(potentialRating.toFixed(4));
+          improvementMade = true;
+        }
+      }
+      
+      if (!improvementMade) {
+        const microTuneTarget = songToImprove.targetRating + 0.0001;
+        const { score, rating, possible } = findMinScoreForTargetRating(songToImprove, microTuneTarget, input.isScoreLimitReleased);
+        if (possible && score > songToImprove.targetScore && score <= scoreCap) {
+          updatedSongs[songIndex].targetScore = score;
+          updatedSongs[songIndex].targetRating = rating;
+          improvementMade = true;
+        }
+      }
+      
+      if (improvementMade) {
+        songsChangedCount++;
+        phaseIsStuck = false;
+      }
+    }
+  }
+
+  return { updatedSongs, songsChangedCount, stuck: phaseIsStuck };
+}
+
 function _performListSimulationPhase(
   currentSongsInput: Song[],
   input: SimulationInput,
@@ -183,11 +240,10 @@ function _performListSimulationPhase(
   let songsChangedCount = 0;
   let phaseIsStuck = true;
 
-  const listName = listType === 'b30' ? "B30" : "N20";
   const listLimit = listType === 'b30' ? BEST_COUNT : NEW_20_COUNT;
   const scoreCap = input.isScoreLimitReleased ? 1010000 : MAX_SCORE_NORMAL;
 
-  let updatableSongsForLeap = updatedSongs.filter(song => !song.isExcludedFromImprovement && song.targetScore < scoreCap && song.chartConstant !== null && song.chartConstant > 0);
+  let updatableSongsForLeap = updatedSongs.filter(song => !input.excludedSongKeys.includes(song.uniqueId) && song.targetScore < scoreCap && song.chartConstant !== null && song.chartConstant > 0);
   if (input.algorithmPreference === 'floor') {
     updatableSongsForLeap.sort((a, b) => {
       const aIsHighConst = isSongHighConstantForFloor(a, currentAverageForList);
@@ -201,7 +257,7 @@ function _performListSimulationPhase(
   } else {
     updatableSongsForLeap.sort((a, b) => {
       if (b.targetRating !== a.targetRating) return b.targetRating - a.targetRating;
-      return b.targetScore - a.targetScore;
+      return b.targetScore - b.targetScore;
     });
   }
 
@@ -221,7 +277,7 @@ function _performListSimulationPhase(
     }
   }
 
-  let updatableSongsForFineTune = updatedSongs.filter(song => !song.isExcludedFromImprovement && song.targetScore < scoreCap && song.chartConstant !== null && song.chartConstant > 0);
+  let updatableSongsForFineTune = updatedSongs.filter(song => !input.excludedSongKeys.includes(song.uniqueId) && song.targetScore < scoreCap && song.chartConstant !== null && song.chartConstant > 0);
     if (input.algorithmPreference === 'floor') {
         updatableSongsForFineTune.sort((a, b) => {
             const aIsHighConst = isSongHighConstantForFloor(a, currentAverageForList);
@@ -230,12 +286,12 @@ function _performListSimulationPhase(
             const constA = a.chartConstant ?? Infinity; const constB = b.chartConstant ?? Infinity;
             if (constA !== constB) return constA - constB;
             if (a.targetRating !== b.targetRating) return a.targetRating - b.targetRating;
-            return a.targetScore - b.targetScore;
+            return a.targetScore - a.targetScore;
         });
     } else {
         updatableSongsForFineTune.sort((a, b) => {
             if (b.targetRating !== a.targetRating) return b.targetRating - a.targetRating;
-            return b.targetScore - a.targetScore;
+            return b.targetScore - b.targetScore;
         });
     }
 
@@ -248,261 +304,148 @@ function _performListSimulationPhase(
             const targetMicroTuneRating = currentSongInSim.targetRating + 0.0001;
             const minScoreInfo = findMinScoreForTargetRating(currentSongInSim, targetMicroTuneRating, input.isScoreLimitReleased);
             if (minScoreInfo.possible && minScoreInfo.score > currentSongInSim.targetScore && minScoreInfo.score <= scoreCap) {
-                updatedSongs[songIndex] = { ...currentSongInSim, targetScore: minScoreInfo.score, targetRating: parseFloat(minScoreInfo.rating.toFixed(4)) };
-                songsChangedCount++; phaseIsStuck = false;
-                return { updatedSongs: sortAndSlice(deduplicateSongList(updatedSongs), listLimit), songsChangedCount, stuck: phaseIsStuck };
+                updatedSongs[songIndex] = { ...currentSongInSim, targetScore: minScoreInfo.score, targetRating: minScoreInfo.rating };
+                songsChangedCount++;
+                phaseIsStuck = false;
+                break;
             }
         }
     }
   }
-
-  let songToReplace: Song | undefined = undefined;
-  if (updatedSongs.length >= listLimit) {
-      songToReplace = [...updatedSongs].sort((a, b) => a.targetRating - b.targetRating)[0];
-  } else if (listType === 'n20' && updatedSongs.length < listLimit) {
-      const currentN20IdsAndDiffs = new Set(updatedSongs.map(s => `${s.id}_${s.diff}`));
-      const potentialAdditions = input.allPlayedNewSongsPool
-          .filter(poolSong => {
-            const songKey = `${poolSong.id}_${poolSong.diff.toUpperCase()}`;
-            return !currentN20IdsAndDiffs.has(songKey) && 
-                   !otherListSongs.some(ols => ols.id === poolSong.id && ols.diff.toUpperCase() === poolSong.diff.toUpperCase()) &&
-                   !input.excludedSongKeys.has(songKey);
-          })
-          .sort((a,b) => b.currentRating - a.currentRating);
-      if (potentialAdditions.length > 0) {
-          const songToAdd = potentialAdditions[0];
-          if (!songToReplace || songToAdd.currentRating > songToReplace.targetRating) {
-            updatedSongs.push({...songToAdd, targetScore: songToAdd.currentScore, targetRating: songToAdd.currentRating, isExcludedFromImprovement: false });
-            songsChangedCount++; phaseIsStuck = false;
-            return { updatedSongs: sortAndSlice(deduplicateSongList(updatedSongs), listLimit), songsChangedCount, stuck: phaseIsStuck };
-          }
-      }
-  }
-
-  if (!songToReplace) {
-      return { updatedSongs: sortAndSlice(deduplicateSongList(updatedSongs), listLimit), songsChangedCount, stuck: phaseIsStuck };
-  }
-
-  let replacementSourcePool: (Song | ShowallApiSongEntry)[] = [];
-  const currentSimulatedIdsAndDiffs = new Set(updatedSongs.map(s => `${s.id}_${s.diff.toUpperCase()}`));
-  const otherListIdsAndDiffs = new Set(otherListSongs.map(s => `${s.id}_${s.diff.toUpperCase()}`));
-
-  if (listType === 'b30') {
-    replacementSourcePool = input.allMusicData
-      .filter(globalSong => {
-        if (!globalSong.id || !globalSong.diff || !globalSong.title) return false;
-        const globalSongKey = `${globalSong.id}_${globalSong.diff.toUpperCase()}`;
-        if (input.excludedSongKeys.has(globalSongKey)) return false;
-        if (currentSimulatedIdsAndDiffs.has(globalSongKey)) return false;
-        if (isHybridReplaceContext && otherListIdsAndDiffs.has(globalSongKey)) return false;
-        const isNewSongByName = input.newSongsDataTitlesVerse.some(title => title.trim().toLowerCase() === globalSong.title.trim().toLowerCase());
-        if (isNewSongByName) return false;
-        const tempSongObj = mapApiSongToAppSong(globalSong, 0, globalSong.const);
-        if (!tempSongObj.chartConstant) return false;
-        const potentialMaxRating = calculateChunithmSongRating(scoreCap, tempSongObj.chartConstant);
-        return potentialMaxRating > songToReplace!.targetRating + 0.00005;
-      })
-      .map(apiEntry => {
-        const playedVersion = input.userPlayHistory.find(p => p.id === apiEntry.id && p.diff.toUpperCase() === apiEntry.diff.toUpperCase());
-        return mapApiSongToAppSong(playedVersion || { ...apiEntry, score: 0, rating: 0 }, 0, apiEntry.const);
-      })
-      .filter(song => song.chartConstant !== null);
-  } else { // listType === 'n20'
-    replacementSourcePool = input.allPlayedNewSongsPool
-      .filter(poolSong => {
-          const poolSongKey = `${poolSong.id}_${poolSong.diff.toUpperCase()}`;
-          if (input.excludedSongKeys.has(poolSongKey)) return false;
-          if (currentSimulatedIdsAndDiffs.has(poolSongKey)) return false;
-          if (isHybridReplaceContext && otherListIdsAndDiffs.has(poolSongKey)) return false;
-          if (!poolSong.chartConstant) return false;
-          const potentialMaxRating = calculateChunithmSongRating(scoreCap, poolSong.chartConstant);
-          return Math.max(poolSong.currentRating, potentialMaxRating) > songToReplace!.targetRating + 0.00005;
-      });
-  }
-
-  let bestCandidateForReplacement: (Song & { neededScore: number; resultingRating: number }) | null = null;
-  let minEffort = Infinity;
-
-  for (const candidate of replacementSourcePool) {
-    if (!candidate.chartConstant) continue;
-    const targetRatingForCandidate = songToReplace.targetRating + 0.0001;
-    const minScoreInfo = findMinScoreForTargetRating(candidate, targetRatingForCandidate, input.isScoreLimitReleased);
-    if (minScoreInfo.possible && minScoreInfo.score <= scoreCap) {
-      const effort = candidate.currentScore > 0 ? (minScoreInfo.score - candidate.currentScore) : (minScoreInfo.score + 1000000);
-      let updateBestCandidate = false;
-      if (bestCandidateForReplacement === null || effort < minEffort) {
-        updateBestCandidate = true;
-      } else if (effort === minEffort) {
-        if (input.algorithmPreference === 'floor') {
-          if ((candidate.chartConstant ?? Infinity) < (bestCandidateForReplacement.chartConstant ?? Infinity)) updateBestCandidate = true;
-        } else {
-          if (minScoreInfo.rating > bestCandidateForReplacement.resultingRating) updateBestCandidate = true;
-        }
-      }
-      if (updateBestCandidate) {
-        minEffort = effort;
-        bestCandidateForReplacement = { ...candidate, neededScore: minScoreInfo.score, resultingRating: parseFloat(minScoreInfo.rating.toFixed(4)) };
-      }
-    }
-  }
-
-  if (bestCandidateForReplacement) {
-    updatedSongs = updatedSongs.filter(s => !(s.id === songToReplace!.id && s.diff === songToReplace!.diff));
-    updatedSongs.push({
-      ...bestCandidateForReplacement,
-      targetScore: bestCandidateForReplacement.neededScore,
-      targetRating: bestCandidateForReplacement.resultingRating,
-      isExcludedFromImprovement: false,
+  
+  if (isHybridReplaceContext || listType === 'n20') {
+    const poolWithExisting = deduplicateSongList([...updatedSongs, ...input.allPlayedNewSongsPool]);
+    let bestCandidatesForReplacement = poolWithExisting.filter(p_song => {
+        const key = `${p_song.id}_${p_song.diff}`;
+        return !input.excludedSongKeys.includes(key) && !updatedSongs.some(us => us.id === p_song.id && us.diff === p_song.diff);
     });
-    songsChangedCount++; phaseIsStuck = false;
-    return { updatedSongs: sortAndSlice(deduplicateSongList(updatedSongs), listLimit), songsChangedCount, stuck: phaseIsStuck };
+    bestCandidatesForReplacement.sort((a, b) => b.currentRating - a.currentRating);
+    if (bestCandidatesForReplacement.length > 0 && updatedSongs.length >= listLimit) {
+        const worstSongInList = updatedSongs.reduce((min, song) => song.targetRating < min.targetRating ? song : min, updatedSongs[0]);
+        const bestCandidate = bestCandidatesForReplacement[0];
+        if (bestCandidate.currentRating > worstSongInList.targetRating) {
+            const indexToRemove = updatedSongs.findIndex(s => s.id === worstSongInList.id && s.diff === worstSongInList.diff);
+            if (indexToRemove !== -1) {
+                updatedSongs.splice(indexToRemove, 1, bestCandidate);
+                songsChangedCount++;
+                phaseIsStuck = false;
+            }
+        }
+    }
   }
 
   return { updatedSongs: sortAndSlice(deduplicateSongList(updatedSongs), listLimit), songsChangedCount, stuck: phaseIsStuck };
 }
 
-// Moved from simulation-logic.ts
+
 function runFullSimulation(input: SimulationInput): SimulationOutput {
   const log: string[] = [];
-  log.push(`[WORKER_RUN_SIMULATION_START] Target: ${input.targetRating.toFixed(4)}, Mode: ${input.simulationMode}, Preference: ${input.algorithmPreference}, Current Rating: ${input.currentRating.toFixed(4)}, Excluded: ${input.excludedSongKeys.size}`);
-
-  let currentSimulatedB30Songs: Song[];
-  let currentSimulatedNew20Songs: Song[];
-  const scoreCap = input.isScoreLimitReleased ? 1010000 : MAX_SCORE_NORMAL;
 
   const initializeSongList = (songs: Song[], listName: string): Song[] => {
-    return JSON.parse(JSON.stringify(songs)).map((s: Song) => {
-      const songKey = `${s.id}_${s.diff}`;
-      if (input.excludedSongKeys.has(songKey)) {
-        log.push(`[WORKER_INIT_EXCLUDE] Song ${s.title} (${s.diff}) in ${listName} is excluded. Fixing score to ${s.currentScore}.`);
-        return { ...s, targetScore: s.currentScore, targetRating: s.currentRating, isExcludedFromImprovement: true, };
-      }
-      return { ...s, isExcludedFromImprovement: false };
-    });
+      log.push(`Initializing ${listName} list with ${songs.length} songs.`);
+      const initialized = JSON.parse(JSON.stringify(songs));
+      return initialized.map((s: Song) => ({...s, targetScore: s.currentScore, targetRating: s.currentRating }));
+  };
+  
+  const constOverrides: ConstOverride[] = input.constOverrides || [];
+  const applyConstOverrides = (songs: Song[]): Song[] => {
+      if (constOverrides.length === 0) return songs;
+      return songs.map(song => {
+          const override = constOverrides.find(o => o.title === song.title && o.diff === song.diff);
+          if (override) {
+              const newConst = typeof override.const === 'string' ? parseFloat(override.const) : override.const;
+              const newRating = calculateChunithmSongRating(song.currentScore, newConst);
+              return { ...song, chartConstant: newConst, currentRating: newRating, targetRating: newRating };
+          }
+          return song;
+      });
   };
 
-  if (input.simulationMode === "b30_only") {
-    currentSimulatedB30Songs = initializeSongList(input.originalB30Songs, "B30");
-    currentSimulatedNew20Songs = initializeSongList(input.originalNew20Songs.map(s => ({...s, targetScore: s.currentScore, targetRating: s.currentRating })), "N20 (fixed)");
-  } else if (input.simulationMode === "n20_only") {
-    currentSimulatedB30Songs = initializeSongList(input.originalB30Songs.map(s => ({...s, targetScore: s.currentScore, targetRating: s.currentRating })), "B30 (fixed)");
-    currentSimulatedNew20Songs = initializeSongList(input.originalNew20Songs, "N20");
-  } else { // hybrid mode
-    currentSimulatedB30Songs = initializeSongList(input.originalB30Songs, "B30");
-    currentSimulatedNew20Songs = initializeSongList(input.originalNew20Songs, "N20");
+  if (input.simulationMode === 'custom' && input.customSongs) {
+      let customSongs = applyConstOverrides(initializeSongList(input.customSongs, "Custom"));
+      let customAvg = calculateAverageRating(customSongs, customSongs.length, false);
+      log.push(`Custom Mode Initial State: Average Rating: ${customAvg?.toFixed(4) || 'N/A'}`);
+      
+      let iterations = 0;
+      const maxIterations = MAX_ITERATIONS_HYBRID;
+      let finalPhase: SimulationPhase = 'simulating';
+
+      while ((customAvg === null || customAvg < input.targetRating) && iterations < maxIterations) {
+          const { updatedSongs, stuck } = _performCustomListSimulation(customSongs, input, log);
+          if (stuck) {
+              finalPhase = 'stuck_b30_no_improvement';
+              break;
+          }
+          customSongs = updatedSongs;
+          customAvg = calculateAverageRating(customSongs, customSongs.length, true);
+          iterations++;
+      }
+
+      if (customAvg !== null && customAvg >= input.targetRating) {
+          finalPhase = 'target_reached';
+      } else if (finalPhase === 'simulating') {
+          finalPhase = 'stuck_b30_no_improvement';
+      }
+      
+      return {
+          simulatedB30Songs: customSongs,
+          simulatedNew20Songs: [],
+          finalAverageB30Rating: customAvg,
+          finalAverageNew20Rating: null,
+          finalOverallRating: customAvg ?? 0,
+          finalPhase: finalPhase,
+          simulationLog: log,
+      };
   }
 
-  let currentAverageB30Rating = calculateAverageRating(currentSimulatedB30Songs, BEST_COUNT, input.simulationMode !== "n20_only");
-  let currentAverageNew20Rating = calculateAverageRating(currentSimulatedNew20Songs, NEW_20_COUNT, input.simulationMode !== "b30_only");
+  // --- Existing B30/N20/Hybrid Logic ---
+  let currentSimulatedB30Songs = applyConstOverrides(initializeSongList(input.originalB30Songs, "B30"));
+  let currentSimulatedNew20Songs = applyConstOverrides(initializeSongList(input.originalNew20Songs, "N20"));
+  
+  let currentAverageB30Rating = calculateAverageRating(currentSimulatedB30Songs, BEST_COUNT, true);
+  let currentAverageNew20Rating = calculateAverageRating(currentSimulatedNew20Songs, NEW_20_COUNT, true);
   let currentOverallRating = calculateOverallRating(currentAverageB30Rating, currentAverageNew20Rating, currentSimulatedB30Songs.length, currentSimulatedNew20Songs.length);
-  log.push(`[WORKER_INITIAL_STATE] B30 Avg: ${currentAverageB30Rating?.toFixed(4) || 'N/A'}, N20 Avg: ${currentAverageNew20Rating?.toFixed(4) || 'N/A'}, Overall: ${currentOverallRating.toFixed(4)}`);
+  
+  log.push(`[WORKER_INITIAL_STATE] Overall: ${currentOverallRating.toFixed(4)}`);
+  
   let finalOutcomePhase: SimulationPhase = 'simulating';
+  let iterations = 0;
+  const maxIterations = input.simulationMode === 'hybrid' ? MAX_ITERATIONS_HYBRID : MAX_ITERATIONS_PER_LIST;
 
-  if (input.simulationMode === "b30_only") {
-    let b30Stuck = false; let b30Iterations = 0;
-    while (currentOverallRating < input.targetRating && !b30Stuck && b30Iterations < MAX_ITERATIONS_PER_LIST) {
-      b30Iterations++; const previousOverallRatingForCycle = currentOverallRating;
+  while (currentOverallRating < input.targetRating && iterations < maxIterations) {
+    iterations++;
+    let b30Changed = 0, n20Changed = 0;
+    let b30Stuck = true, n20Stuck = true;
+
+    if (input.simulationMode === 'b30_only' || input.simulationMode === 'hybrid') {
       const result = _performListSimulationPhase(currentSimulatedB30Songs, input, log, 'b30', currentAverageB30Rating, currentSimulatedNew20Songs);
-      currentSimulatedB30Songs = result.updatedSongs; b30Stuck = result.stuck;
-      currentAverageB30Rating = calculateAverageRating(currentSimulatedB30Songs, BEST_COUNT, true);
-      currentOverallRating = calculateOverallRating(currentAverageB30Rating, currentAverageNew20Rating, currentSimulatedB30Songs.length, currentSimulatedNew20Songs.length);
-      if (currentOverallRating >= input.targetRating) { finalOutcomePhase = 'target_reached'; break; }
-      if (b30Stuck || Math.abs(currentOverallRating - previousOverallRatingForCycle) < 0.00001) { b30Stuck = true; }
+      currentSimulatedB30Songs = result.updatedSongs;
+      b30Changed = result.songsChangedCount;
+      b30Stuck = result.stuck;
     }
-    if (b30Iterations >= MAX_ITERATIONS_PER_LIST && currentOverallRating < input.targetRating) b30Stuck = true;
-    if (finalOutcomePhase !== 'target_reached') finalOutcomePhase = b30Stuck ? 'stuck_b30_no_improvement' : 'simulating';
-  }
-  else if (input.simulationMode === "n20_only") {
-    let n20Stuck = false; let n20Iterations = 0;
-    while (currentOverallRating < input.targetRating && !n20Stuck && n20Iterations < MAX_ITERATIONS_PER_LIST) {
-      n20Iterations++; const previousOverallRatingForCycle = currentOverallRating;
-      const result = _performListSimulationPhase(currentSimulatedNew20Songs, input, log, 'n20', currentAverageNew20Rating, currentSimulatedB30Songs);
-      currentSimulatedNew20Songs = result.updatedSongs; n20Stuck = result.stuck;
-      currentAverageNew20Rating = calculateAverageRating(currentSimulatedNew20Songs, NEW_20_COUNT, true);
-      currentOverallRating = calculateOverallRating(currentAverageB30Rating, currentAverageNew20Rating, currentSimulatedB30Songs.length, currentSimulatedNew20Songs.length);
-      if (currentOverallRating >= input.targetRating) { finalOutcomePhase = 'target_reached'; break; }
-      if (n20Stuck || Math.abs(currentOverallRating - previousOverallRatingForCycle) < 0.00001) { n20Stuck = true; }
+
+    if (input.simulationMode === 'n20_only' || input.simulationMode === 'hybrid') {
+        const result = _performListSimulationPhase(currentSimulatedNew20Songs, input, log, 'n20', currentAverageNew20Rating, currentSimulatedB30Songs, true);
+        currentSimulatedNew20Songs = result.updatedSongs;
+        n20Changed = result.songsChangedCount;
+        n20Stuck = result.stuck;
     }
-    if (n20Iterations >= MAX_ITERATIONS_PER_LIST && currentOverallRating < input.targetRating) n20Stuck = true;
-    if (finalOutcomePhase !== 'target_reached') finalOutcomePhase = n20Stuck ? 'stuck_n20_no_improvement' : 'simulating';
-  }
-  else if (input.simulationMode === "hybrid" && finalOutcomePhase !== 'target_reached' && currentOverallRating < input.targetRating) {
-    let hybridIterations = 0; let hybridStuck = false;
-    while (currentOverallRating < input.targetRating && !hybridStuck && hybridIterations < MAX_ITERATIONS_HYBRID) {
-        hybridIterations++; const previousOverallRatingForHybridCycle = currentOverallRating;
-        let songsChangedThisIteration = false;
-        let globalCandidates: (Song & { listOrigin: 'b30' | 'n20' })[] = [];
-        currentSimulatedB30Songs.forEach(s => { if (s.targetScore < scoreCap && s.chartConstant && s.chartConstant > 0 && !s.isExcludedFromImprovement) globalCandidates.push({ ...JSON.parse(JSON.stringify(s)), listOrigin: 'b30' }); });
-        currentSimulatedNew20Songs.forEach(s => { if (s.targetScore < scoreCap && s.chartConstant && s.chartConstant > 0 && !s.isExcludedFromImprovement) globalCandidates.push({ ...JSON.parse(JSON.stringify(s)), listOrigin: 'n20' }); });
-        globalCandidates = globalCandidates.filter(c => {
-            const nextPossibleScore = getNextGradeBoundaryScore(c.targetScore);
-            if (nextPossibleScore && c.chartConstant && nextPossibleScore <= scoreCap) { const potentialRating = calculateChunithmSongRating(nextPossibleScore, c.chartConstant); if (potentialRating > c.targetRating + 0.00005) return true; }
-            const fineTunePotential = findMinScoreForTargetRating(c, c.targetRating + 0.0001, input.isScoreLimitReleased);
-            if (fineTunePotential.possible && fineTunePotential.score > c.targetScore && fineTunePotential.score <= scoreCap) return true;
-            return false;
-        });
-        if (globalCandidates.length > 0) {
-            if (input.algorithmPreference === 'floor') globalCandidates.sort((a, b) => { const aIsHigh = isSongHighConstantForFloor(a, a.listOrigin === 'b30' ? currentAverageB30Rating : currentAverageNew20Rating); const bIsHigh = isSongHighConstantForFloor(b, b.listOrigin === 'b30' ? currentAverageB30Rating : currentAverageNew20Rating); if (aIsHigh !== bIsHigh) return aIsHigh ? 1 : -1; const constA = a.chartConstant ?? Infinity; const constB = b.chartConstant ?? Infinity; if (constA !== constB) return constA - constB; if (a.targetRating !== b.targetRating) return a.targetRating - b.targetRating; return a.targetScore - b.targetScore; });
-            else globalCandidates.sort((a, b) => { if (b.targetRating !== a.targetRating) return b.targetRating - a.targetRating; if (b.targetScore !== a.targetScore) return b.targetScore - a.targetScore; const constA = a.chartConstant ?? 0; const constB = b.chartConstant ?? 0; return constB - constA; });
-            const topCandidate = globalCandidates[0];
-            if (topCandidate) {
-                const nextGradeScore = getNextGradeBoundaryScore(topCandidate.targetScore);
-                if (nextGradeScore && topCandidate.chartConstant && topCandidate.targetScore < nextGradeScore && nextGradeScore <= scoreCap) {
-                    const potentialRatingAtNextGrade = calculateChunithmSongRating(nextGradeScore, topCandidate.chartConstant);
-                    if (potentialRatingAtNextGrade > topCandidate.targetRating + 0.00005) {
-                        if (topCandidate.listOrigin === 'b30') { const songIndex = currentSimulatedB30Songs.findIndex(s => s.id === topCandidate.id && s.diff === topCandidate.diff); if (songIndex !== -1) { currentSimulatedB30Songs[songIndex].targetScore = nextGradeScore; currentSimulatedB30Songs[songIndex].targetRating = parseFloat(potentialRatingAtNextGrade.toFixed(4)); songsChangedThisIteration = true; }}
-                        else { const songIndex = currentSimulatedNew20Songs.findIndex(s => s.id === topCandidate.id && s.diff === topCandidate.diff); if (songIndex !== -1) { currentSimulatedNew20Songs[songIndex].targetScore = nextGradeScore; currentSimulatedNew20Songs[songIndex].targetRating = parseFloat(potentialRatingAtNextGrade.toFixed(4)); songsChangedThisIteration = true; }}
-                    }
-                }
-            }
-        }
-        if (!songsChangedThisIteration && globalCandidates.length > 0) {
-            const candidateForFineTune = globalCandidates[0];
-            if (candidateForFineTune.targetScore < scoreCap && candidateForFineTune.chartConstant) {
-                const targetMicroTuneRating = candidateForFineTune.targetRating + 0.0001;
-                const minScoreInfo = findMinScoreForTargetRating(candidateForFineTune, targetMicroTuneRating, input.isScoreLimitReleased);
-                if (minScoreInfo.possible && minScoreInfo.score > candidateForFineTune.targetScore && minScoreInfo.score <= scoreCap) {
-                    if (candidateForFineTune.listOrigin === 'b30') { const songIndex = currentSimulatedB30Songs.findIndex(s => s.id === candidateForFineTune.id && s.diff === candidateForFineTune.diff); if (songIndex !== -1) { currentSimulatedB30Songs[songIndex].targetScore = minScoreInfo.score; currentSimulatedB30Songs[songIndex].targetRating = parseFloat(minScoreInfo.rating.toFixed(4)); songsChangedThisIteration = true; }}
-                    else { const songIndex = currentSimulatedNew20Songs.findIndex(s => s.id === candidateForFineTune.id && s.diff === candidateForFineTune.diff); if (songIndex !== -1) { currentSimulatedNew20Songs[songIndex].targetScore = minScoreInfo.score; currentSimulatedNew20Songs[songIndex].targetRating = parseFloat(minScoreInfo.rating.toFixed(4)); songsChangedThisIteration = true; }}
-                }
-            }
-        }
-        currentSimulatedB30Songs = sortAndSlice(deduplicateSongList(currentSimulatedB30Songs), BEST_COUNT);
-        currentSimulatedNew20Songs = sortAndSlice(deduplicateSongList(currentSimulatedNew20Songs), NEW_20_COUNT);
-        currentAverageB30Rating = calculateAverageRating(currentSimulatedB30Songs, BEST_COUNT, true);
-        currentAverageNew20Rating = calculateAverageRating(currentSimulatedNew20Songs, NEW_20_COUNT, true);
-        currentOverallRating = calculateOverallRating(currentAverageB30Rating, currentAverageNew20Rating, currentSimulatedB30Songs.length, currentSimulatedNew20Songs.length);
-        if (currentOverallRating >= input.targetRating) { finalOutcomePhase = 'target_reached'; break; }
-        if (!songsChangedThisIteration || Math.abs(currentOverallRating - previousOverallRatingForHybridCycle) < 0.00001) {
-            let replacedInB30 = false; let replacedInN20 = false;
-            const b30ReplaceResult = _performListSimulationPhase(currentSimulatedB30Songs, input, log, 'b30', currentAverageB30Rating, currentSimulatedNew20Songs, true);
-            if (b30ReplaceResult.songsChangedCount > 0) { currentSimulatedB30Songs = b30ReplaceResult.updatedSongs; replacedInB30 = true; songsChangedThisIteration = true; }
-            const n20ReplaceResult = _performListSimulationPhase(currentSimulatedNew20Songs, input, log, 'n20', currentAverageNew20Rating, currentSimulatedB30Songs, true);
-            if (n20ReplaceResult.songsChangedCount > 0) { currentSimulatedNew20Songs = n20ReplaceResult.updatedSongs; replacedInN20 = true; songsChangedThisIteration = true; }
-            currentSimulatedB30Songs = sortAndSlice(deduplicateSongList(currentSimulatedB30Songs), BEST_COUNT);
-            currentSimulatedNew20Songs = sortAndSlice(deduplicateSongList(currentSimulatedNew20Songs), NEW_20_COUNT);
-            currentAverageB30Rating = calculateAverageRating(currentSimulatedB30Songs, BEST_COUNT, true);
-            currentAverageNew20Rating = calculateAverageRating(currentSimulatedNew20Songs, NEW_20_COUNT, true);
-            currentOverallRating = calculateOverallRating(currentAverageB30Rating, currentAverageNew20Rating, currentSimulatedB30Songs.length, currentSimulatedNew20Songs.length);
-            if (currentOverallRating >= input.targetRating) { finalOutcomePhase = 'target_reached'; break; }
-            if (!replacedInB30 && !replacedInN20) hybridStuck = true;
-        }
-        if (Math.abs(currentOverallRating - previousOverallRatingForHybridCycle) < 0.00001 && !songsChangedThisIteration) hybridStuck = true;
-    }
-    if (hybridIterations >= MAX_ITERATIONS_HYBRID && currentOverallRating < input.targetRating) hybridStuck = true;
-    if (finalOutcomePhase !== 'target_reached') { if (hybridStuck) finalOutcomePhase = 'stuck_both_no_improvement'; else if (currentOverallRating < input.targetRating) finalOutcomePhase = 'stuck_both_no_improvement'; }
+
+    currentAverageB30Rating = calculateAverageRating(currentSimulatedB30Songs, BEST_COUNT, true);
+    currentAverageNew20Rating = calculateAverageRating(currentSimulatedNew20Songs, NEW_20_COUNT, true);
+    currentOverallRating = calculateOverallRating(currentAverageB30Rating, currentAverageNew20Rating, currentSimulatedB30Songs.length, currentSimulatedNew20Songs.length);
+    
+    if (input.simulationMode === 'b30_only' && b30Stuck) { finalOutcomePhase = 'stuck_b30_no_improvement'; break; }
+    if (input.simulationMode === 'n20_only' && n20Stuck) { finalOutcomePhase = 'stuck_n20_no_improvement'; break; }
+    if (input.simulationMode === 'hybrid' && b30Stuck && n20Stuck) { finalOutcomePhase = 'stuck_both_no_improvement'; break; }
   }
 
-  if (finalOutcomePhase === 'simulating' || (finalOutcomePhase !== 'target_reached' && finalOutcomePhase !== 'stuck_b30_no_improvement' && finalOutcomePhase !== 'stuck_n20_no_improvement' && finalOutcomePhase !== 'stuck_both_no_improvement' )) {
-    if (input.simulationMode === 'b30_only' && currentOverallRating < input.targetRating) finalOutcomePhase = 'stuck_b30_no_improvement';
-    else if (input.simulationMode === 'n20_only' && currentOverallRating < input.targetRating) finalOutcomePhase = 'stuck_n20_no_improvement';
-    else if (input.simulationMode === 'hybrid' && currentOverallRating < input.targetRating) finalOutcomePhase = 'stuck_both_no_improvement';
-    else if (currentOverallRating >= input.targetRating) finalOutcomePhase = 'target_reached';
-    else finalOutcomePhase = input.simulationMode === 'hybrid' ? 'stuck_both_no_improvement' : (input.simulationMode === 'b30_only' ? 'stuck_b30_no_improvement' : 'stuck_n20_no_improvement');
+  if (currentOverallRating >= input.targetRating) {
+    finalOutcomePhase = 'target_reached';
+  } else if (finalOutcomePhase === 'simulating') {
+      finalOutcomePhase = 'stuck_both_no_improvement';
   }
-  log.push(`[WORKER_RUN_SIMULATION_END] Final Phase: ${finalOutcomePhase}. Overall Rating: ${currentOverallRating.toFixed(4)}.`);
-  currentSimulatedB30Songs = deduplicateSongList(currentSimulatedB30Songs);
-  currentSimulatedNew20Songs = deduplicateSongList(currentSimulatedNew20Songs);
+
   return {
     simulatedB30Songs: currentSimulatedB30Songs,
     simulatedNew20Songs: currentSimulatedNew20Songs,
@@ -517,18 +460,20 @@ function runFullSimulation(input: SimulationInput): SimulationOutput {
 
 self.onmessage = (event: MessageEvent<SimulationInput>) => {
   try {
-    const result = runFullSimulation(event.data);
-    self.postMessage(result);
+    const output = runFullSimulation(event.data);
+    self.postMessage(output);
   } catch (error) {
-    self.postMessage({
-      error: error instanceof Error ? error.message : String(error),
-      finalPhase: 'error_simulation_logic',
-      simulationLog: [`Worker error: ${error instanceof Error ? error.message : String(error)}`],
-      simulatedB30Songs: event.data.originalB30Songs, // Return original songs on error
-      simulatedNew20Songs: event.data.originalNew20Songs,
+    console.error("Error in simulation worker:", error);
+    const errorOutput: SimulationOutput = {
+      simulatedB30Songs: [],
+      simulatedNew20Songs: [],
       finalAverageB30Rating: null,
       finalAverageNew20Rating: null,
-      finalOverallRating: event.data.currentRating,
-    } as SimulationOutput);
+      finalOverallRating: 0,
+      finalPhase: 'error_simulation_logic',
+      simulationLog: ['Worker execution failed.'],
+      error: error instanceof Error ? error.message : String(error),
+    };
+    self.postMessage(errorOutput);
   }
 };

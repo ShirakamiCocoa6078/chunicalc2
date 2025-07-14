@@ -94,6 +94,7 @@ function ResultContent() {
     refreshNonce,
     clientHasMounted,
     calculationStrategy,
+    simulationTargetSongs,
   });
 
   useEffect(() => {

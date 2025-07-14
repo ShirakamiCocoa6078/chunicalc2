@@ -190,6 +190,7 @@ interface UseChuniResultDataProps {
   refreshNonce: number;
   clientHasMounted: boolean;
   calculationStrategy: CalculationStrategy;
+  simulationTargetSongs: Song[];
 }
 
 export function useChuniResultData({
@@ -200,6 +201,7 @@ export function useChuniResultData({
   refreshNonce,
   clientHasMounted,
   calculationStrategy,
+  simulationTargetSongs,
 }: UseChuniResultDataProps) {
   const { toast } = useToast();
   const [state, dispatch] = useReducer(resultDataReducer, initialState);
@@ -290,23 +292,28 @@ export function useChuniResultData({
   ]);
 
   useEffect(() => {
-    if (calculationStrategy === 'none' || !clientHasMounted || isLoadingInitialApiData) {
+    if ((calculationStrategy === 'none' && simulationTargetSongs.length === 0) || !clientHasMounted || isLoadingInitialApiData) {
       if (state.currentPhase !== 'idle' && calculationStrategy === 'none') {
         dispatch({ type: 'RESET_SIMULATION_STATE_FOR_NEW_STRATEGY' });
       }
       return;
     }
-
+    
     const parsedCurrentRating = parseFloat(currentRatingDisplay || '0');
     const parsedTargetRating = parseFloat(targetRatingDisplay || '0');
     
     if (isNaN(parsedTargetRating) || parsedTargetRating <= 0 || isNaN(parsedCurrentRating)) {
-      return;
+        return;
     }
+
+    const isCustomMode = simulationTargetSongs.length > 0;
     
-    const simulationMode = calculationStrategy === "b30_focus" ? "b30_only"
+    const simulationMode = isCustomMode
+                           ? "custom"
+                           : calculationStrategy === "b30_focus" ? "b30_only"
                            : calculationStrategy === "n20_focus" ? "n20_only"
                            : "hybrid";
+
     const algorithmPreference = calculationStrategy === "hybrid_peak" ? "peak" : "floor";
     const newSongsDataTyped: { verse: string[]; xverse: string[]; } = NewSongsData.titles;
     const newSongsTitles = [...newSongsDataTyped.verse, ...newSongsDataTyped.xverse];
@@ -328,12 +335,21 @@ export function useChuniResultData({
       isScoreLimitReleased: getIsScoreLimitReleased(),
       phaseTransitionPoint: 17.00,
       excludedSongKeys: state.excludedSongKeys,
+      customSongs: isCustomMode ? simulationTargetSongs : undefined,
     };
     simulationWorkerRef.current?.postMessage(simulationInput);
-  }, [calculationStrategy, targetRatingDisplay, currentRatingDisplay, clientHasMounted, isLoadingInitialApiData, state.originalB30SongsData, state.originalNew20SongsData, state.allPlayedNewSongsPool, state.allMusicData, state.userPlayHistory, state.excludedSongKeys, locale, dispatch, state.currentPhase]);
+  }, [calculationStrategy, simulationTargetSongs, targetRatingDisplay, currentRatingDisplay, clientHasMounted, isLoadingInitialApiData, state.originalB30SongsData, state.originalNew20SongsData, state.allPlayedNewSongsPool, state.allMusicData, state.userPlayHistory, state.excludedSongKeys, locale, dispatch, state.currentPhase]);
 
   useEffect(() => {
-    if (!clientHasMounted || isLoadingInitialApiData || !userNameForApi || !state.originalB30SongsData || calculationStrategy === 'none') {
+    if (!clientHasMounted || isLoadingInitialApiData || !userNameForApi || !state.originalB30SongsData || (calculationStrategy === 'none' && simulationTargetSongs.length === 0)) {
+      return;
+    }
+    
+    // 사전 계산은 B30/N20 모드에서만 의미가 있으므로 custom 모드에서는 건너뜁니다.
+    if (simulationTargetSongs.length > 0) {
+        if (state.preComputationResult) {
+            dispatch({ type: 'RESET_SIMULATION_STATE_FOR_NEW_STRATEGY' });
+        }
         return;
     }
 
