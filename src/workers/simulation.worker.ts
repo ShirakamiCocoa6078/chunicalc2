@@ -62,7 +62,9 @@ function performSimulation(simulationInput: SimulationInput): SimulationOutput {
     originalB30Songs,
     originalNew20Songs,
     allPlayedNewSongsPool,
-    constOverrides
+    constOverrides,
+    currentB30Avg,
+    currentN20Avg,
   } = simulationInput;
 
   let simulationLog: string[] = [];
@@ -87,10 +89,9 @@ function performSimulation(simulationInput: SimulationInput): SimulationOutput {
     });
   };
 
-  if (simulationMode === 'custom' && initialCustomSongs) {
-    const customResult = _performCustomListSimulation(
-      initialCustomSongs,
-      targetRating,
+  if (simulationMode === 'custom_target' && initialCustomSongs) {
+    const customResult = _performTargetListSimulation(
+      simulationInput,
       simulationLog,
       applyConstOverrides,
       initializeSongList
@@ -155,6 +156,117 @@ function performSimulation(simulationInput: SimulationInput): SimulationOutput {
     finalAverageNew20Rating: currentAverageNew20Rating,
     finalOverallRating: currentOverallRating,
     finalPhase: finalOutcomePhase,
+    simulationLog,
+  };
+}
+
+function _performTargetListSimulation(
+  input: SimulationInput,
+  simulationLog: string[],
+  applyConstOverrides: (s: Song[]) => Song[],
+  initializeSongList: (s: Song[], n: string) => Song[]
+): SimulationOutput {
+  const {
+    targetRating,
+    customSongs,
+    originalB30Songs,
+    originalNew20Songs,
+    currentB30Avg,
+    currentN20Avg,
+  } = input;
+
+  simulationLog.push('[커스텀 타겟] 커스텀 타겟 목록 시뮬레이션을 시작합니다.');
+
+  if (!customSongs || customSongs.length === 0) {
+    simulationLog.push('[ERROR] 대상 곡 목록이 비어있습니다.');
+    return {
+      simulatedB30Songs: [], simulatedNew20Songs: [], finalAverageB30Rating: 0,
+      finalAverageNew20Rating: 0, finalOverallRating: 0, finalPhase: 'error_simulation_logic',
+      simulationLog, error: 'Custom songs list is empty.'
+    };
+  }
+
+  const best_count = 30, new_20_count = 20;
+  let currentOverallRating = calculateAverageAndOverallRating([], 0, 'currentRating', currentB30Avg, currentN20Avg, best_count, new_20_count).overallAverage ?? 0;
+  
+  let processedCustomSongs = applyConstOverrides(initializeSongList(customSongs, "CustomTarget"));
+  let tempB30 = [...originalB30Songs];
+  let tempN20 = [...originalNew20Songs];
+
+  let iterations = 0;
+  const maxIterations = MAX_ITERATIONS_HYBRID * 2; // 더 많은 반복 허용
+  let finalPhase: SimulationOutput['finalPhase'] = 'simulating';
+
+  simulationLog.push(`시작 레이팅: ${currentOverallRating.toFixed(4)}, 목표: ${targetRating}`);
+
+  while (currentOverallRating < targetRating && iterations < maxIterations) {
+    iterations++;
+
+    // 개선할 곡 풀 = 커스텀 곡 목록
+    const availableToImprove = processedCustomSongs.filter(s => s.targetScore < (input.isScoreLimitReleased ? 1010000 : MAX_SCORE_NORMAL));
+    if (availableToImprove.length === 0) {
+      simulationLog.push('개선 가능한 곡이 더 이상 없습니다.');
+      finalPhase = 'stuck_b30_no_improvement';
+      break;
+    }
+
+    // 가장 효율적인 곡 선택 (레이팅 상승 기여도가 높은 곡)
+    availableToImprove.sort((a, b) => (b.chartConstant ?? 0) - (a.chartConstant ?? 0));
+    const songToImprove = availableToImprove[0];
+    
+    // 점수 상승 시도
+    const originalSongState = { ...songToImprove };
+    const { updatedSongs: improvedList, songsChangedCount } = _performListSimulationPhase(
+        [songToImprove],
+        { ...input, originalB30Songs: [songToImprove] },
+        simulationLog, 'b30', null
+    );
+
+    if (songsChangedCount === 0) {
+      simulationLog.push(`'${songToImprove.title}' 곡의 점수를 더 이상 올릴 수 없습니다.`);
+       // 해당 곡을 잠시 제외하고 다시 시도하기 위해 루프를 계속할 수 있으나, 일단 정지
+       finalPhase = 'stuck_b30_no_improvement';
+       break;
+    }
+    const improvedSong = improvedList[0];
+
+    // processedCustomSongs 목록에서 해당 곡 업데이트
+    const songIndexInCustomList = processedCustomSongs.findIndex(s => s.uniqueId === improvedSong.uniqueId);
+    if (songIndexInCustomList !== -1) {
+      processedCustomSongs[songIndexInCustomList] = improvedSong;
+    }
+
+    // 개선된 곡을 포함하여 새로운 B30, N20 계산
+    const combinedPool = deduplicateAndPrioritizeSongs([...tempB30, ...tempN20, ...processedCustomSongs]);
+    const newB30 = sortSongsByRatingDesc(combinedPool).slice(0, best_count);
+    
+    // New 20 로직은 여기서는 간단하게 처리 (실제 앱에서는 NewSongs.json 기반 필터링 필요)
+    // 여기서는 커스텀 곡이 B30에만 영향을 미친다고 가정
+    const newN20 = tempN20;
+
+    const { average: newB30Avg } = calculateAverageAndOverallRating(newB30, best_count, 'targetRating');
+    const { average: newN20Avg } = calculateAverageAndOverallRating(newN20, new_20_count, 'targetRating');
+    currentOverallRating = calculateAverageAndOverallRating([], 0, 'currentRating', newB30Avg, newN20Avg, newB30.length, newN20.length).overallAverage ?? 0;
+    
+    tempB30 = newB30;
+    tempN20 = newN20; // N20은 변경 없다고 가정
+
+    simulationLog.push(`[${iterations}] '${improvedSong.title}' 점수 ${originalSongState.targetScore} -> ${improvedSong.targetScore}, 전체 레이팅: ${currentOverallRating.toFixed(4)}`);
+  }
+
+  if (currentOverallRating >= targetRating) {
+    finalPhase = 'target_reached';
+  } else if (finalPhase === 'simulating') {
+    finalPhase = 'stuck_both_no_improvement';
+  }
+
+  return {
+    simulatedB30Songs: processedCustomSongs, // B30 슬롯에 결과 반환
+    simulatedNew20Songs: [],
+    finalAverageB30Rating: calculateAverageAndOverallRating(tempB30, best_count, 'targetRating').average,
+    finalAverageNew20Rating: calculateAverageAndOverallRating(tempN20, new_20_count, 'targetRating').average,
+    finalOverallRating: currentOverallRating,
+    finalPhase,
     simulationLog,
   };
 }

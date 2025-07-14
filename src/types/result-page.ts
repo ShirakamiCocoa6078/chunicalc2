@@ -109,11 +109,13 @@ export interface SimulationInput {
   currentRating: number;
   targetRating: number;
   algorithmPreference: "floor" | "peak";
-  simulationMode: "b30_only" | "n20_only" | "hybrid" | "custom";
+  simulationMode: "b30_only" | "n20_only" | "hybrid" | "custom" | "custom_target";
   isScoreLimitReleased: boolean;
   phaseTransitionPoint: number | null;
   excludedSongKeys: string[];
   customSongs?: Song[];
+  currentB30Avg?: number | null;
+  currentN20Avg?: number | null;
 }
 
 export type WorkerInitializationData = {
@@ -129,6 +131,8 @@ export type WorkerSimulationRequestData = {
     algorithmPreference: SimulationInput['algorithmPreference'];
     customSongs?: Song[];
     excludedSongKeys: string[];
+    currentB30Avg?: number | null;
+    currentN20Avg?: number | null;
   };
 };
 

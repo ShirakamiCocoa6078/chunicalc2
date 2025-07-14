@@ -23,7 +23,7 @@ import { getLocalReferenceApiToken } from '@/lib/get-api-token';
 import { LOCAL_STORAGE_PREFIX } from '@/lib/cache';
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
-import { mapApiSongToAppSong } from "@/lib/rating-utils";
+import { mapApiSongToAppSong, sortSongsByRatingDesc } from "@/lib/rating-utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 
@@ -86,6 +86,10 @@ function ResultContent() {
     excludedSongKeys,
     toggleExcludeSongKey,
     allMusicData,
+    userPlayHistory,
+    customSimulationResult,
+    originalB30SongsData,
+    originalNew20SongsData,
   } = useChuniResultData({
     userNameForApi,
     currentRatingDisplay,
@@ -110,9 +114,14 @@ function ResultContent() {
   }, [searchQuery, allMusicData]);
 
   const addSongToSimulation = (song: ShowallApiSongEntry) => {
-    const newSong = mapApiSongToAppSong(song, 0);
-    if (!simulationTargetSongs.some(s => s.uniqueId === newSong.uniqueId)) {
-      setSimulationTargetSongs(prev => [...prev, newSong]);
+    // userPlayHistory에서 해당 곡의 실제 플레이 기록을 찾습니다.
+    const playedVersion = userPlayHistory.find(p => p.id === song.id && p.diff.toUpperCase() === song.diff.toUpperCase());
+    
+    // 플레이 기록이 있으면 해당 기록으로, 없으면 검색 결과(점수 0)로 Song 객체를 만듭니다.
+    const songToAdd = mapApiSongToAppSong(playedVersion || song, 0);
+
+    if (!simulationTargetSongs.some(s => s.uniqueId === songToAdd.uniqueId)) {
+      setSimulationTargetSongs(prev => [...prev, songToAdd]);
     }
   };
 
@@ -345,7 +354,7 @@ function ResultContent() {
                 <CardContent>
                   {simulationTargetSongs.length > 0 ? (
                     <div className={`grid gap-4 ${best30GridCols}`}>
-                      {simulationTargetSongs.map(song => (
+                      {(customSimulationResult ? customSimulationResult.simulatedB30Songs : simulationTargetSongs).map(song => (
                         <SongCard
                           key={song.uniqueId}
                           song={song}
@@ -426,7 +435,7 @@ function ResultContent() {
                     <CardContent>
                       {best30SongsData.length > 0 ? (
                                 <div className={`grid gap-4 ${best30GridCols}`}>
-                                    {best30SongsData.map((song) => (
+                                    {(simulationTargetSongs.length > 0 ? originalB30SongsData : best30SongsData).map((song) => (
                               <SongCard
                                             key={song.uniqueId}
                                 song={song}
@@ -450,7 +459,7 @@ function ResultContent() {
                     <CardContent>
                          {new20SongsData.length > 0 ? (
                                   <div className={`grid gap-4 ${best30GridCols}`}>
-                                      {new20SongsData.map((song) => (
+                                      {(simulationTargetSongs.length > 0 ? originalNew20SongsData : new20SongsData).map((song) => (
                                  <SongCard
                                               key={song.uniqueId}
                                    song={song}
@@ -474,7 +483,7 @@ function ResultContent() {
                     <CardContent>
                       {combinedTopSongs.length > 0 ? (
                                   <div className={`grid gap-4 ${best30GridCols}`}>
-                                      {combinedTopSongs.map((song) => (
+                                      {(simulationTargetSongs.length > 0 ? sortSongsByRatingDesc([...originalB30SongsData, ...originalNew20SongsData]) : combinedTopSongs).map((song: Song) => (
                                <SongCard
                                               key={song.uniqueId}
                                  song={song}

@@ -52,6 +52,7 @@ interface ResultDataState {
   preComputationResult: { reachableRating: number; messageKey: string; theoreticalMaxSongsB30?: Song[], theoreticalMaxSongsN20?: Song[] } | null;
   excludedSongKeys: string[];
   lastRefreshedTimestamp: number | null; // For UI display of refresh time
+  customSimulationResult: SimulationOutput | null;
 }
 
 type ResultDataAction =
@@ -65,6 +66,7 @@ type ResultDataAction =
       timestamp: number;
     } }
   | { type: 'START_SIMULATION'; payload: { locale: Locale } }
+  | { type: 'CUSTOM_SIMULATION_SUCCESS'; payload: SimulationOutput }
   | { type: 'SIMULATION_SUCCESS'; payload: SimulationOutput }
   | { type: 'SIMULATION_ERROR'; payload: string }
   | { type: 'TOGGLE_EXCLUDE_SONG'; payload: string }
@@ -92,6 +94,7 @@ const initialState: ResultDataState = {
   preComputationResult: null,
   excludedSongKeys: [],
   lastRefreshedTimestamp: null,
+  customSimulationResult: null,
 };
 
 function resultDataReducer(state: ResultDataState, action: ResultDataAction): ResultDataState {
@@ -115,9 +118,19 @@ function resultDataReducer(state: ResultDataState, action: ResultDataAction): Re
         simulationError: null,
         isLoadingSimulation: false,
         preComputationResult: null,
+        customSimulationResult: null,
       };
     case 'START_SIMULATION':
-      return { ...state, isLoadingSimulation: true, simulationError: null, currentPhase: 'simulating', simulationLog: [getTranslation(action.payload.locale, 'resultPageLogSimulationStarting')] };
+      return { ...state, isLoadingSimulation: true, simulationError: null, currentPhase: 'simulating', simulationLog: [getTranslation(action.payload.locale, 'resultPageLogSimulationStarting')], customSimulationResult: null };
+    case 'CUSTOM_SIMULATION_SUCCESS':
+      return {
+        ...state,
+        isLoadingSimulation: false,
+        customSimulationResult: action.payload,
+        currentPhase: action.payload.finalPhase,
+        simulationLog: [...state.simulationLog, ...action.payload.simulationLog],
+        simulationError: action.payload.error || null,
+      };
     case 'SIMULATION_SUCCESS':
       return {
         ...state,
@@ -130,6 +143,7 @@ function resultDataReducer(state: ResultDataState, action: ResultDataAction): Re
         currentPhase: action.payload.finalPhase,
         simulationLog: [...state.simulationLog, ...action.payload.simulationLog],
         simulationError: action.payload.error || null,
+        customSimulationResult: null, // 일반 시뮬레이션 시에는 커스텀 결과를 초기화
       };
     case 'SIMULATION_ERROR':
       return { ...state, isLoadingSimulation: false, simulationError: action.payload, currentPhase: 'error_simulation_logic' };
@@ -153,6 +167,7 @@ function resultDataReducer(state: ResultDataState, action: ResultDataAction): Re
         isLoadingSimulation: false,
         preComputationResult: null,
         simulationLog: [],
+        customSimulationResult: null,
       };
     case 'SET_PRECOMPUTATION_RESULT':
         return { ...state, preComputationResult: action.payload, isLoadingSimulation: false };
@@ -208,6 +223,8 @@ export function useChuniResultData({
   const { toast } = useToast();
   const [state, dispatch] = useReducer(resultDataReducer, initialState);
   const simulationWorkerRef = useRef<Worker | null>(null);
+  const latestSimulationInputRef = useRef<SimulationInput | null>(null);
+  const initialDataRef = useRef<WorkerInitializationData['payload'] | null>(null);
 
   const defaultPlayerName = getTranslation(locale, 'resultPageDefaultPlayerName');
 
@@ -222,7 +239,13 @@ export function useChuniResultData({
   useEffect(() => {
     simulationWorkerRef.current = new Worker(new URL('@/workers/simulation.worker.ts', import.meta.url));
     simulationWorkerRef.current.onmessage = (event: MessageEvent<SimulationOutput>) => {
-      dispatch({ type: 'SIMULATION_SUCCESS', payload: event.data });
+      // 워커로부터 받은 메시지에 모드 정보를 포함시켜 구분할 수 있도록 해야합니다.
+      // 지금은 SIMULATE 요청에 대한 응답이라고 가정하고, 모드에 따라 다른 액션을 디스패치합니다.
+      if (latestSimulationInputRef.current && latestSimulationInputRef.current.simulationMode === 'custom_target') {
+        dispatch({ type: 'CUSTOM_SIMULATION_SUCCESS', payload: event.data });
+      } else {
+        dispatch({ type: 'SIMULATION_SUCCESS', payload: event.data });
+      }
     };
     simulationWorkerRef.current.onerror = (error) => {
       console.error("Simulation Worker Error:", error);
@@ -306,6 +329,7 @@ export function useChuniResultData({
           phaseTransitionPoint: 17.00,
           excludedSongKeys: [], // 초기에는 제외 목록이 비어있음
         };
+        initialDataRef.current = initPayload; // Ref에 저장
         simulationWorkerRef.current.postMessage({ type: 'INIT', payload: initPayload });
       }
     }
@@ -336,26 +360,42 @@ export function useChuniResultData({
 
     const isCustomMode = simulationTargetSongs.length > 0;
     
-    const simulationMode = isCustomMode
-                           ? "custom"
-                           : calculationStrategy === "b30_focus" ? "b30_only"
-                           : calculationStrategy === "n20_focus" ? "n20_only"
-                           : "hybrid";
+    if (isCustomMode) {
+        // 커스텀 시뮬레이션
+        dispatch({ type: 'START_SIMULATION', payload: { locale } });
+        const simulatePayload: WorkerSimulationRequestData['payload'] = {
+          targetRating: parsedTargetRating,
+          simulationMode: "custom_target",
+          algorithmPreference: "floor", // 커스텀 모드에서는 floor 고정
+          customSongs: simulationTargetSongs,
+          excludedSongKeys: state.excludedSongKeys,
+          // 현재 B30/N20 평균 레이팅 전달
+          currentB30Avg: state.simulatedAverageB30Rating,
+          currentN20Avg: state.simulatedAverageNew20Rating,
+        };
+        latestSimulationInputRef.current = { ...initialDataRef.current, ...simulatePayload } as SimulationInput; // 추적용
+        simulationWorkerRef.current.postMessage({ type: 'SIMULATE', payload: simulatePayload });
 
-    const algorithmPreference = calculationStrategy === "hybrid_peak" ? "peak" : "floor";
+    } else {
+        // 기존 B30/N20/하이브리드 시뮬레이션
+        const simulationMode = calculationStrategy === "b30_focus" ? "b30_only"
+                               : calculationStrategy === "n20_focus" ? "n20_only"
+                               : "hybrid";
+        const algorithmPreference = calculationStrategy === "hybrid_peak" ? "peak" : "floor";
 
-    dispatch({ type: 'START_SIMULATION', payload: { locale } });
+        dispatch({ type: 'START_SIMULATION', payload: { locale } });
 
-    const simulatePayload: WorkerSimulationRequestData['payload'] = {
-      targetRating: parsedTargetRating,
-      simulationMode: simulationMode,
-      algorithmPreference: algorithmPreference,
-      customSongs: isCustomMode ? simulationTargetSongs : undefined,
-      excludedSongKeys: state.excludedSongKeys,
-    };
-    
-    simulationWorkerRef.current.postMessage({ type: 'SIMULATE', payload: simulatePayload });
-  }, [calculationStrategy, simulationTargetSongs, targetRatingDisplay, currentRatingDisplay, clientHasMounted, isLoadingInitialApiData, state.excludedSongKeys, locale, dispatch]);
+        const simulatePayload: WorkerSimulationRequestData['payload'] = {
+          targetRating: parsedTargetRating,
+          simulationMode: simulationMode,
+          algorithmPreference: algorithmPreference,
+          excludedSongKeys: state.excludedSongKeys,
+        };
+        
+        latestSimulationInputRef.current = { ...initialDataRef.current, ...simulatePayload } as SimulationInput; // 추적용
+        simulationWorkerRef.current.postMessage({ type: 'SIMULATE', payload: simulatePayload });
+    }
+  }, [calculationStrategy, simulationTargetSongs, targetRatingDisplay, currentRatingDisplay, clientHasMounted, isLoadingInitialApiData, state.excludedSongKeys, locale, dispatch, state.simulatedAverageB30Rating, state.simulatedAverageNew20Rating]);
 
   useEffect(() => {
     if (!clientHasMounted || isLoadingInitialApiData || !userNameForApi || (calculationStrategy === 'none' && simulationTargetSongs.length === 0)) {
@@ -424,6 +464,8 @@ export function useChuniResultData({
 
   return {
     apiPlayerName: state.apiPlayerName,
+    originalB30SongsData: state.originalB30SongsData, // 원본 데이터 노출
+    originalNew20SongsData: state.originalNew20SongsData, // 원본 데이터 노출
     best30SongsData: state.simulatedB30Songs,
     new20SongsData: state.simulatedNew20Songs,
     combinedTopSongs: sortSongsByRatingDesc([...state.simulatedB30Songs, ...state.simulatedNew20Songs]),
@@ -439,6 +481,8 @@ export function useChuniResultData({
     excludedSongKeys: state.excludedSongKeys,
     toggleExcludeSongKey,
     allMusicData: state.allMusicData,
+    userPlayHistory: state.userPlayHistory, // 사용자 기록 노출
+    customSimulationResult: state.customSimulationResult, // 커스텀 결과 노출
   };
 }
 
