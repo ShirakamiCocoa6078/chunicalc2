@@ -23,7 +23,7 @@ type ProfileData = {
 };
 
 
-export default function ChuniCalcForm() {
+export default function ChuniCalc2Form() {
   const [nickname, setNickname] = useState<string>("");
   const [currentRatingStr, setCurrentRatingStr] = useState<string>("");
   const [isFetchingRating, setIsFetchingRating] = useState<boolean>(false);
@@ -58,9 +58,9 @@ export default function ChuniCalcForm() {
     let proxyUrl = `/api/chunirecApiProxy?proxyEndpoint=records/profile.json&user_name=${encodeURIComponent(nickname)}&region=jp2`;
     if (localToken) {
       proxyUrl += `&localApiToken=${encodeURIComponent(localToken)}`;
-      console.log("[ChuniCalcForm] Using local reference API token for profile fetch.");
+      console.log("[ChuniCalc2Form] Using local reference API token for profile fetch.");
     } else {
-      console.log("[ChuniCalcForm] No local reference API token found, relying on server-side key for profile fetch.");
+      console.log("[ChuniCalc2Form] No local reference API token found, relying on server-side key for profile fetch.");
     }
 
 

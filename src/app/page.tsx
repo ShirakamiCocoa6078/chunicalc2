@@ -1,7 +1,7 @@
 
 "use client"; // Required for useLanguage hook
 
-import ChuniCalcForm from "@/components/ChuniCalcForm";
+import ChuniCalc2Form from "@/components/ChuniCalc2Form";
 import AdvancedSettings from "@/components/AdvancedSettings";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageToggle } from "@/components/LanguageToggle"; // Added
@@ -23,7 +23,7 @@ export default function Home() {
           <ThemeToggle />
         </div>
       </div>
-      <ChuniCalcForm />
+      <ChuniCalc2Form />
       <AdvancedSettings />
       <Analytics/>
     </main>

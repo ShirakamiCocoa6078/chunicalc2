@@ -1,4 +1,4 @@
-# **App Name**: ChuniCalc
+# **App Name**: ChuniCalc 2
 
 ## Core Features:
 

@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { LanguageProvider } from "@/contexts/LanguageContext"; // Added
 
 export const metadata: Metadata = {
-  title: 'ChuniCalc',
+  title: 'ChuniCalc 2',
   description: 'Calculate your Chunithm rating progress',
 };
 

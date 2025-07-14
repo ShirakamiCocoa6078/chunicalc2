@@ -1,11 +1,11 @@
 
 export const translations = {
   KR: {
-    homePageTitle: "ChuniCalc",
+    homePageTitle: "ChuniCalc 2",
     languageToggleKR: "KR (한국어)",
     languageToggleJP: "JP (日本語)",
     // ChuniCalcForm
-    formTitle: "ChuniCalc",
+    formTitle: "ChuniCalc 2",
     formDescription: "츄니즘 성장 시뮬레이터.",
     nicknameLabel: "닉네임 (Chunirec User Name)",
     nicknamePlaceholder: "예: chunirec",
@@ -51,7 +51,7 @@ export const translations = {
     clearLocalDataHelp: "앱이 로컬 저장소에 저장한 모든 캐시 데이터 (UI 설정, API 응답 등)를 삭제합니다. 참조용 API 키는 삭제되지 않습니다.",
     contactInfoLabel: "문의 및 정보",
     contactInfoBugReport: "버그 리포트 및 기타 문의:",
-    appVersion: "ChuniCalc Ver 1.1.3",
+    appVersion: "Chunicalc Ver 2.0.0",
     // Toast Messages KR
     toastErrorApiKeyNotSet: "API 키 오류",
     toastErrorApiKeyNotSetDesc: "Chunirec API 토큰이 서버에 설정되지 않았거나 유효하지 않습니다. 호스팅 환경 설정을 확인해주세요.",
@@ -157,7 +157,7 @@ export const translations = {
     resultPageLogSimulationStarting: "시뮬레이션을 준비 중입니다...",
     resultPageErrorSimulationGeneric: (errorMsg: string) => `시뮬레이션 중 오류 발생: ${errorMsg}`,
     reachableRatingB30OnlyMessage: (rating: string) => `[Best 30 집중 모드] 현재 New 20 곡을 유지할 경우, Best 30 곡만으로는 도달 가능한 최대 레이팅이 약 ${rating} 입니다. 목표 레이팅이 이보다 높다면 이 전략으로는 달성할 수 없습니다.`,
-    reachableRatingN20OnlyMessage: (rating: string) => `[New 20 集中モード] 現在のBest 30曲を維持する場合、New 20曲のみで到達可能な最大レーティングは約 ${rating} です。目標レーティングがこれより高い場合、この戦略では達成できません。`,
+    reachableRatingN20OnlyMessage: (rating: string) => `[New 20 집중 모드] 현재 Best 30 곡을 유지할 경우, New 20 곡만으로는 도달 가능한 최대 레이팅이 약 ${rating} 입니다. 목표 레이팅이 이보다 높다면 이 전략으로는 달성할 수 없습니다.`,
     resultPageTargetReachedFmt: (overall: string, b30: string, n20: string) => `목표 달성! 최종 종합 레이팅: ${overall} (B30: ${b30}, N20: ${n20})`,
     resultPageStuckBothBaseFmt: (overall: string) => `B30과 N20 모두 더 이상 개선할 수 없습니다. 최종 종합: ${overall}`,
     resultPageDetailRatingsAvgFmt: (b30Avg: string, n20Avg?: string) => ` (B30 평균: ${b30Avg}${n20Avg ? `, N20 평균: ${n20Avg}` : ''})`,
@@ -172,11 +172,11 @@ export const translations = {
     tooltipLocalApiKeyContent: "https://developer.chunirec.net/manage/ 에서 발급받은 Chunirec API 액세스 토큰을 사용할 수 있습니다. 공식 API 오류 발생 시 대체 수단으로 활용 가능합니다.",
   },
   JP: {
-    homePageTitle: "ChuniCalc",
+    homePageTitle: "ChuniCalc 2",
     languageToggleKR: "KR (韓国語)",
     languageToggleJP: "JP (日本語)",
     // ChuniCalcForm
-    formTitle: "ChuniCalc",
+    formTitle: "ChuniCalc 2",
     formDescription: "チュウニズム成長シミュレーター。",
     nicknameLabel: "ニックネーム (Chunirec User Name)",
     nicknamePlaceholder: "例: chunirec",
@@ -222,7 +222,7 @@ export const translations = {
     clearLocalDataHelp: "アプリがローカルストレージに保存したすべてのキャッシュデータ（UI設定、API応答など）を削除します。参照用APIキーは削除されません。",
     contactInfoLabel: "お問い合わせと情報",
     contactInfoBugReport: "バグレポートおよびその他のお問い合わせ:",
-    appVersion: "ChuniCalc Ver 1.1.3",
+    appVersion: "Chunicalc Ver 2.0.0",
     // Toast Messages JP
     toastErrorApiKeyNotSet: "APIキーエラー",
     toastErrorApiKeyNotSetDesc: "Chunirec APIトークンがサーバーに設定されていないか、無効です。ホスティング環境設定を確認してください。",
@@ -365,7 +365,7 @@ export function getTranslation<L extends Locale, K extends keyof typeof translat
   ...args: TranslationArgs<L, K>
 ): string {
   const primaryTranslations = translations[locale] || translations.KR;
-  let messageOrFn = primaryTranslations[key as keyof typeof primaryTranslations];
+  let messageOrFn: any = primaryTranslations[key as keyof typeof primaryTranslations];
 
   if (messageOrFn === undefined && locale !== 'KR') {
     const fallbackTranslations = translations.KR;
@@ -373,13 +373,14 @@ export function getTranslation<L extends Locale, K extends keyof typeof translat
   }
 
   if (messageOrFn === undefined) {
-    const defaultText = args.length > 0 && typeof args[args.length -1] === 'string' && !Object.keys(primaryTranslations).includes(args[args.length -1] as K) ? args[args.length -1] as string : String(key);
-    console.warn(`Translation missing for key: ${String(key)} in locale: ${locale}. Using default: "${defaultText}"`);
+    const keyAsString = String(key);
+    const defaultText = args.length > 0 && typeof args[args.length - 1] === 'string' && !Object.keys(primaryTranslations).includes(args[args.length - 1] as string) ? args[args.length - 1] as string : keyAsString;
+    console.warn(`Translation missing for key: ${keyAsString} in locale: ${locale}. Using default: "${defaultText}"`);
     return defaultText;
   }
 
   if (typeof messageOrFn === 'function') {
-    return (messageOrFn as TranslationFunction<any[], string>)(...args.slice(0, messageOrFn.length));
+    return (messageOrFn as Function)(...args);
   }
   return messageOrFn as string;
 }
