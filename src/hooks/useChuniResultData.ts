@@ -237,7 +237,7 @@ export function useChuniResultData({
 
   const defaultPlayerName = getTranslation(locale, 'resultPageDefaultPlayerName');
 
-  const newSongsVerseTitles = useMemo(() => NewSongsData.titles.verse, []);
+  const newSongsVerseTitles = useMemo(() => NewSongsData.titles.xverse, []);
 
   const { data: profileData, error: profileError, isLoading: isLoadingProfile, mutate: mutateProfile } = useProfileData(userNameForApi && userNameForApi !== defaultPlayerName ? userNameForApi : null);
   const { data: ratingData, error: ratingError, isLoading: isLoadingRating, mutate: mutateRating } = useUserRatingData(userNameForApi && userNameForApi !== defaultPlayerName ? userNameForApi : null);
