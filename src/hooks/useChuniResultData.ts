@@ -2,6 +2,18 @@
 // src/hooks/useChuniResultData.ts
 "use client";
 
+/**
+ * 🔧 MAINTENANCE NOTE - 게임 버전 업데이트 시 설정 변경 방법:
+ * 
+ * 1. NewSongs.json 파일 업데이트 (신곡 목록 추가/변경)
+ * 2. 아래 NEW_SONGS_VERSION_KEY 상수를 변경
+ *    - 'verse': 기본 신곡 목록 사용
+ *    - 'xverse': 확장 신곡 목록 사용 (현재 설정)
+ *    - 새로운 버전이 추가되면 해당 키를 추가하여 사용
+ * 
+ * 이 설정만 변경하면 전체 앱에서 자동으로 새로운 신곡 목록을 참조합니다.
+ */
+
 import { useState, useEffect, useCallback, useReducer, useRef, useMemo } from 'react'; // Ensure useMemo is imported
 import { useToast } from "@/hooks/use-toast";
 import NewSongsData from '@/data/NewSongs.json';
@@ -28,6 +40,15 @@ import { useProfileData, useUserRatingData, useUserShowallData, useGlobalMusicDa
 const BEST_COUNT = 30;
 const NEW_20_COUNT = 20;
 const MAX_SCORE_ASSUMED_FOR_POTENTIAL = 1009000;
+
+// === NEW SONGS VERSION CONFIGURATION ===
+// 게임 버전 업데이트 시 이 설정만 변경하면 됩니다
+// 사용 가능한 값: 'verse' | 'xverse' 
+// - 'verse': 기본 신곡 목록
+// - 'xverse': 확장 신곡 목록 (현재 사용 중)
+type NewSongsVersionKey = keyof typeof NewSongsData.titles;
+const NEW_SONGS_VERSION_KEY: NewSongsVersionKey = 'xverse' as const;
+// =======================================
 
 // --- State, Action, Reducer for useReducer ---
 interface ResultDataState {
@@ -237,7 +258,7 @@ export function useChuniResultData({
 
   const defaultPlayerName = getTranslation(locale, 'resultPageDefaultPlayerName');
 
-  const newSongsVerseTitles = useMemo(() => NewSongsData.titles.xverse, []);
+  const newSongsCurrentVersionTitles = useMemo(() => NewSongsData.titles[NEW_SONGS_VERSION_KEY], []);
 
   const { data: profileData, error: profileError, isLoading: isLoadingProfile, mutate: mutateProfile } = useProfileData(userNameForApi && userNameForApi !== defaultPlayerName ? userNameForApi : null);
   const { data: ratingData, error: ratingError, isLoading: isLoadingRating, mutate: mutateRating } = useUserRatingData(userNameForApi && userNameForApi !== defaultPlayerName ? userNameForApi : null);
@@ -296,8 +317,8 @@ export function useChuniResultData({
       const best30FromApi = (ratingData.best?.entries || []).slice(0, BEST_COUNT);
       const b30Songs = best30FromApi.map((song) => mapApiSongToAppSong(song, 0));
 
-      const newSongsDataTyped: { verse: string[]; xverse: string[]; } = NewSongsData.titles;
-      const newSongsTitles = [...newSongsDataTyped.verse, ...newSongsDataTyped.xverse];
+      // 신곡 목록 - 게임 버전에 따라 자동으로 참조되는 목록
+      const newSongsTitles = NewSongsData.titles[NEW_SONGS_VERSION_KEY];
       
       const userRecords: ShowallApiSongEntry[] = userShowallData.records || [];
       const playedNewSongs = userRecords
@@ -323,8 +344,8 @@ export function useChuniResultData({
 
       // Worker 초기화
       if (simulationWorkerRef.current) {
-        const newSongsDataTyped: { verse: string[]; xverse: string[]; } = NewSongsData.titles;
-        const newSongsTitles = [...newSongsDataTyped.verse, ...newSongsDataTyped.xverse];
+        // 신곡 목록 - 게임 버전에 따라 자동으로 참조되는 목록
+        const newSongsTitles = NewSongsData.titles[NEW_SONGS_VERSION_KEY];
         const constOverridesTyped: ConstOverride[] = constOverridesInternal;
 
         const initPayload: WorkerInitializationData['payload'] = {
@@ -516,7 +537,7 @@ export function useChuniResultData({
     userPlayHistory: state.userPlayHistory, // 사용자 기록 노출
     customSimulationResult: state.customSimulationResult, // 커스텀 결과 노출
     runCustomSimulation,
-    newSongsVerseTitles,
+    newSongsCurrentVersionTitles,
   };
 }
 
